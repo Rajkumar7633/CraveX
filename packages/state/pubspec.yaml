@@ -1,0 +1,15 @@
+name: state
+description: Shared state management for Zomato Clone
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  core:
+    path: ../core
+  dio: ^5.4.0

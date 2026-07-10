@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: zomato-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: zomato
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: zomato-redis
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build:
+      context: ../backend/auth-service
+      dockerfile: Dockerfile
+    container_name: zomato-auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    depends_on:
+      - postgres
+
+  restaurant-service:
+    build:
+      context: ../backend/restaurant-service
+      dockerfile: Dockerfile
+    container_name: zomato-restaurant-service
+    ports:
+      - "8081:8081"
+    environment:
+      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+    depends_on:
+      - postgres
+
+  order-service:
+    build:
+      context: ../backend/order-service
+      dockerfile: Dockerfile
+    container_name: zomato-order-service
+    ports:
+      - "8082:8082"
+    environment:
+      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+    depends_on:
+      - postgres
+
+  payment-service:
+    build:
+      context: ../backend/payment-service
+      dockerfile: Dockerfile
+    container_name: zomato-payment-service
+    ports:
+      - "8083:8083"
+    environment:
+      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+    depends_on:
+      - postgres
+
+  rider-service:
+    build:
+      context: ../backend/rider-service
+      dockerfile: Dockerfile
+    container_name: zomato-rider-service
+    ports:
+      - "8084:8084"
+    environment:
+      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+    depends_on:
+      - postgres
+
+  notification-service:
+    build:
+      context: ../backend/notification-service
+      dockerfile: Dockerfile
+    container_name: zomato-notification-service
+    ports:
+      - "8085:8085"
+    environment:
+      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

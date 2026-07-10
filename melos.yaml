@@ -1,0 +1,4 @@
+name: zomato_clone
+packages:
+  - apps/**
+  - packages/**

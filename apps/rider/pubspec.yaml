@@ -1,0 +1,28 @@
+name: rider_app
+description: Zomato Clone - Delivery Rider App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  core:
+    path: ../../packages/core
+  theme:
+    path: ../../packages/theme
+  widgets:
+    path: ../../packages/widgets
+  go_router: ^13.0.0
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
