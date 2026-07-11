@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zomato_clone/core/router/app_router.dart';
+import 'package:zomato_clone/core/services/realtime_service.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final String orderId;
@@ -14,6 +15,8 @@ class OrderTrackingPage extends StatefulWidget {
 class _OrderTrackingPageState extends State<OrderTrackingPage> {
   String _currentStatus = 'confirmed';
   int _currentStep = 1;
+  final OrderTrackingService _orderTrackingService = OrderTrackingService();
+  bool _isRealtimeEnabled = true;
   final List<OrderStep> _steps = [
     OrderStep(
       title: 'Order Confirmed',
@@ -45,7 +48,53 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   @override
   void initState() {
     super.initState();
-    _simulateOrderProgress();
+    if (_isRealtimeEnabled) {
+      _initializeRealtimeUpdates();
+    } else {
+      _simulateOrderProgress();
+    }
+  }
+
+  void _initializeRealtimeUpdates() {
+    _orderTrackingService.subscribeToOrderUpdates(widget.orderId, (data) {
+      if (mounted) {
+        final status = data['status'] as String?;
+        if (status != null) {
+          _updateOrderStatus(status);
+        }
+      }
+    });
+  }
+
+  void _updateOrderStatus(String status) {
+    setState(() {
+      _currentStatus = status;
+      switch (status) {
+        case 'confirmed':
+          _currentStep = 1;
+          break;
+        case 'preparing':
+          _currentStep = 2;
+          break;
+        case 'ready':
+          _currentStep = 3;
+          break;
+        case 'on_the_way':
+          _currentStep = 4;
+          break;
+        case 'delivered':
+          _currentStep = 5;
+          break;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_isRealtimeEnabled) {
+      _orderTrackingService.unsubscribeFromOrderUpdates(widget.orderId, (data) {});
+    }
+    super.dispose();
   }
 
   void _simulateOrderProgress() {

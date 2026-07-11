@@ -32,9 +32,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _paymentService = PaymentService();
+    _paymentService.setCallbacks(
+      onSuccess: _handlePaymentSuccess,
+      onError: _handlePaymentError,
+      onExternalWallet: _handleExternalWallet,
+    );
+  }
+
+  @override
   void dispose() {
     _addressController.dispose();
     _instructionsController.dispose();
+    _paymentService.dispose();
     super.dispose();
   }
 
@@ -402,6 +414,68 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _placeOrder() {
+    if (_selectedPaymentMethod != 'cash') {
+      _initiatePayment();
+    } else {
+      _processOrder();
+    }
+  }
+
+  void _initiatePayment() {
+    final total = 34.97 + 2.99 + 34.97 * 0.08;
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    _paymentService.openPayment(
+      key: PaymentConfig.razorpayKey,
+      amount: total,
+      orderId: 'ORD-${DateTime.now().millisecondsSinceEpoch}',
+      name: 'Zomato Clone',
+      description: 'Food Delivery Order',
+      contact: '1234567890',
+      email: 'user@example.com',
+      prefillAddress: _addresses[_selectedAddress].address,
+      notes: {
+        'order_type': 'food_delivery',
+        'restaurant': 'Italian Kitchen',
+      },
+      themeColor: '#E23744',
+    );
+  }
+
+  void _handlePaymentSuccess(String paymentId) {
+    setState(() {
+      _isProcessingPayment = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment successful! ID: $paymentId'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    _processOrder();
+  }
+
+  void _handlePaymentError(String error) {
+    setState(() {
+      _isProcessingPayment = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment failed: $error'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _handleExternalWallet() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('External wallet selected')),
+    );
+  }
+
+  void _processOrder() {
     // Show loading dialog
     showDialog(
       context: context,

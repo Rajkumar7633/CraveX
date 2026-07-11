@@ -1,0 +1,318 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cravex-postgres
+    environment:
+      POSTGRES_DB: cravex
+      POSTGRES_USER: cravex
+      POSTGRES_PASSWORD: cravex_secure_password_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cravex-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cravex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cravex-redis
+    command: redis-server --requirepass cravex_secure_password_2024
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cravex-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: cravex-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - cravex-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: cravex-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - cravex-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-auth-service
+    command: ./cmd/auth-service/main
+    ports:
+      - "8001:8001"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+      - JWT_SECRET=cravex_jwt_secret_key_2024
+      - JWT_ACCESS_TOKEN_DURATION=15m
+      - JWT_REFRESH_TOKEN_DURATION=720h
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Restaurant Service
+  restaurant-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-restaurant-service
+    command: ./cmd/restaurant-service/main
+    ports:
+      - "8002:8002"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-order-service
+    command: ./cmd/order-service/main
+    ports:
+      - "8003:8003"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Rider Service
+  rider-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-rider-service
+    command: ./cmd/rider-service/main
+    ports:
+      - "8004:8004"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-payment-service
+    command: ./cmd/payment-service/main
+    ports:
+      - "8005:8005"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-notification-service
+    command: ./cmd/notification-service/main
+    ports:
+      - "8006:8006"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+  # Routing Service
+  routing-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: cravex-routing-service
+    command: ./cmd/routing-service/main
+    ports:
+      - "8007:8007"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cravex
+      - DB_PASSWORD=cravex_secure_password_2024
+      - DB_NAME=cravex
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=cravex_secure_password_2024
+      - KAFKA_BROKERS=kafka:9092
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - cravex-network
+    restart: unless-stopped
+
+networks:
+  cravex-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:

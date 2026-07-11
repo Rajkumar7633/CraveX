@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: zomato-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: zomato_clone
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - zomato-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: zomato-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - zomato-network
+
+  # Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zomato-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - zomato-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: zomato-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - zomato-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./cmd/auth-service
+      dockerfile: Dockerfile
+    container_name: zomato-auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      JWT_SECRET: your-super-secret-jwt-key
+      OTP_SECRET: your-otp-secret-key
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8001
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # Restaurant Service
+  restaurant-service:
+    build:
+      context: ./cmd/restaurant-service
+      dockerfile: Dockerfile
+    container_name: zomato-restaurant-service
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8002
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./cmd/order-service
+      dockerfile: Dockerfile
+    container_name: zomato-order-service
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8003
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # Rider Service
+  rider-service:
+    build:
+      context: ./cmd/rider-service
+      dockerfile: Dockerfile
+    container_name: zomato-rider-service
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8004
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./cmd/payment-service
+      dockerfile: Dockerfile
+    container_name: zomato-payment-service
+    ports:
+      - "8005:8005"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8005
+      RAZORPAY_KEY_ID: your-razorpay-key-id
+      RAZORPAY_KEY_SECRET: your-razorpay-key-secret
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./cmd/notification-service
+      dockerfile: Dockerfile
+    container_name: zomato-notification-service
+    ports:
+      - "8006:8006"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      PORT: 8006
+      FCM_SERVER_KEY: your-fcm-server-key
+      MSG91_AUTH_KEY: your-msg91-auth-key
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - zomato-network
+
+  # API Gateway
+  api-gateway:
+    image: kong:latest
+    container_name: zomato-api-gateway
+    ports:
+      - "8080:8000"
+      - "8443:8443"
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres
+      KONG_PG_USER: postgres
+      KONG_PG_PASSWORD: postgres
+      KONG_PG_DATABASE: kong
+    depends_on:
+      - postgres
+    networks:
+      - zomato-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  zomato-network:
+    driver: bridge
