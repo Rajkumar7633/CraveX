@@ -1,7 +1,16 @@
 package handlers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
+	"log"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -236,4 +245,86 @@ func (h *PaymentHandler) GetTransactions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, transactions)
+}
+
+func (h *PaymentHandler) StripeWebhook(c *gin.Context) {
+	// Read raw body
+	payload, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to read body"})
+		return
+	}
+
+	// Validate signature header
+	sigHeader := c.GetHeader("Stripe-Signature")
+	if sigHeader == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing signature"})
+		return
+	}
+
+	// Parse stripe signature header fields: t=timestamp, v1=signature
+	parts := strings.Split(sigHeader, ",")
+	var timestamp, signature string
+	for _, part := range parts {
+		subParts := strings.Split(part, "=")
+		if len(subParts) == 2 {
+			if subParts[0] == "t" {
+				timestamp = subParts[1]
+			} else if subParts[0] == "v1" {
+				signature = subParts[1]
+			}
+		}
+	}
+
+	if timestamp == "" || signature == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid signature header format"})
+		return
+	}
+
+	// Check if timestamp is older than 5 minutes to prevent replay attacks
+	tsInt, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil || time.Now().Unix()-tsInt > 300 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "timestamp expired or invalid"})
+		return
+	}
+
+	// Re-sign payload
+	signedPayload := timestamp + "." + string(payload)
+	mac := hmac.New(sha256.New, []byte("stripe_webhook_secret_key"))
+	mac.Write([]byte(signedPayload))
+	expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	// Constant-time compare to prevent timing attacks
+	if !hmac.Equal([]byte(signature), []byte(expectedSignature)) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid signature verification failed"})
+		return
+	}
+
+	// Parse custom event payload
+	var stripeEvent struct {
+		Type string `json:"type"`
+		Data struct {
+			Object struct {
+				ID       string            `json:"id"`
+				Metadata map[string]string `json:"metadata"`
+			} `json:"object"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(payload, &stripeEvent); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse json"})
+		return
+	}
+
+	// Process valid payment events
+	if stripeEvent.Type == "payment_intent.succeeded" {
+		paymentIDStr := stripeEvent.Data.Object.Metadata["payment_id"]
+		paymentID, err := uuid.Parse(paymentIDStr)
+		if err == nil {
+			log.Printf("[Webhook] Stripe payment succeeded for ID: %s", paymentIDStr)
+			_ = h.paymentService.ProcessPayment(paymentID)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "received"})
 }

@@ -46,6 +46,7 @@ func main() {
 	{
 		public.GET("/:id", paymentHandler.GetPayment)
 		public.GET("/order/:order_id", paymentHandler.GetPaymentByOrderID)
+		public.POST("/webhook/stripe", paymentHandler.StripeWebhook)
 	}
 
 	// Protected routes

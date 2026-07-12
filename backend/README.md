@@ -79,6 +79,7 @@ Every state transition publishes a message to the `order-events` Kafka topic.
 ### Auth Service (Port 8001)
 - User, partner, and rider onboarding flows.
 - JWT-based authentication with validation checks.
+- **OTP Abuse Prevention**: Enforces a strict rate limit of maximum 3 OTP requests/hour per phone number with exponential cooldowns (5s, then 30s) to prevent bulk spamming and brute forcing.
 
 ### Restaurant Service (Port 8002)
 - Catalog searches, menus, items, categories, and availability state toggling.
@@ -105,6 +106,8 @@ Every state transition publishes a message to the `order-events` Kafka topic.
 
 ### Payment Service (Port 8005)
 - Processes transactions and manages user wallets.
+- **Stripe Webhook Signature Verification**: Implements real-time Stripe HMAC-SHA256 signature verification to handle secure transaction state updates (`payment_intent.succeeded`).
+- **Timing Attack & Replay Protection**: Uses constant-time string comparisons (`hmac.Equal`) and rejects webhook events with timestamp deltas > 5 minutes to mitigate timing and replay attack vulnerabilities.
 
 ### Notification Service (Port 8006)
 - Event-driven notifications via SMS, push notifications, and emails triggered by Kafka events.
@@ -138,11 +141,15 @@ Every state transition publishes a message to the `order-events` Kafka topic.
 - Go 1.25
 
 ### Run Service Infrastructure
-Build and launch all services in detached mode:
-```bash
-docker compose build
-docker compose up -d
-```
+1. Copy the environment variables template file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Build and launch all services in detached mode:
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
 
 ### Database Connection Parameters
 - **Host**: `localhost:5435`
