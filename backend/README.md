@@ -131,6 +131,8 @@ Every state transition publishes a message to the `order-events` Kafka topic.
    - Generates a default 5km bounding box POLYGON on restaurant registration.
 4. **Flutter Client Image Caching**:
    - Integrates `CachedNetworkImage` disk-cache loading for restaurant grids to prevent redundant HTTP roundtrips.
+5. **Versioned Database Migrations**:
+   - Schema definitions are managed as versioned migration scripts under the [database/migrations](file:///Users/apple/Desktop/zomato_clone/backend/database/migrations) directory using standard `golang-migrate` patterns, ensuring historical record tracking and automated rollback capability (`up`/`down` scripts).
 
 ---
 
