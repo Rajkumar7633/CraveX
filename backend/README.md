@@ -180,3 +180,10 @@ Every state transition publishes a message to the `order-events` Kafka topic.
 
 The complete endpoints, request formats, schemas, and streaming channels for the microservices stack are documented in the OpenAPI 3.0 specification file:
 - [openapi.yaml](file:///Users/apple/Desktop/zomato_clone/docs/openapi.yaml)
+
+---
+
+## 7. Security Hardening Specifications
+
+Detailing our access controls, replay-protection webhooks, rate limiting, and parameterization models:
+- [security.md](file:///Users/apple/Desktop/zomato_clone/docs/security.md)
