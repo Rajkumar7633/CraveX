@@ -1,194 +1,166 @@
-# Zomato Clone Backend - Go Microservices
+# CraveX Backend — Go Microservices Engine
 
-## Architecture Overview
+The production-grade, event-driven, and highly scalable microservices architecture powering the CraveX platform (Zomato Clone).
 
-This backend uses a microservices architecture with the following services:
+---
 
-### Services
-1. **Auth Service** - Authentication, authorization, user management
-2. **Restaurant Service** - Restaurant management, menu, inventory
-3. **Order Service** - Order processing, tracking, management
-4. **Rider Service** - Rider management, delivery coordination
-5. **Payment Service** - Payment processing, wallet, settlements
-6. **Notification Service** - Push notifications, SMS, email
-7. **Analytics Service** - Business intelligence, reporting
-8. **Admin Service** - Admin operations, content management
+## 1. System Architecture Diagram
 
-### Infrastructure
-- **API Gateway** - Kong/Nginx for routing and load balancing
-- **Service Discovery** - Consul/Eureka for service registration
-- **Message Broker** - Kafka for event streaming
-- **Cache** - Redis for caching and session management
-- **Database** - PostgreSQL for relational data
-- **Object Storage** - AWS S3 for file storage
-- **Search** - Elasticsearch for search functionality
+```mermaid
+graph TD
+    %% Clients
+    Flutter[Flutter Clients: Customer / Rider / Restaurant]
+    
+    %% Gateway
+    Gateway[Kong API Gateway: Port 8080]
+    
+    %% Databases & Brokers
+    Postgres[(PostgreSQL + PostGIS: Port 5435)]
+    Redis[(Redis Cache & Session: Port 6379)]
+    Kafka{Apache Kafka Event Bus: Port 9092}
 
-## Technology Stack
+    %% Microservices
+    Auth[Auth Service: Port 8001]
+    Restaurant[Restaurant Service: Port 8002]
+    Order[Order Service: Port 8003]
+    Rider[Rider Service: Port 8004]
+    Payment[Payment Service: Port 8005]
+    Notification[Notification Service: Port 8006]
 
-### Core
-- **Language**: Go 1.21+
-- **Framework**: Gin/Echo for HTTP servers
-- **ORM**: GORM for database operations
-- **Database**: PostgreSQL 14+
-- **Cache**: Redis 7+
-- **Message Broker**: Apache Kafka 3.5+
-- **Object Storage**: AWS S3
+    %% Mappings
+    Flutter -->|REST / API requests| Gateway
+    Gateway -->|Routing /api/v1/auth| Auth
+    Gateway -->|Routing /api/v1/restaurants| Restaurant
+    Gateway -->|Routing /api/v1/orders| Order
+    Gateway -->|Routing /api/v1/riders| Rider
+    Gateway -->|Routing /api/v1/payments| Payment
 
-### External Services
-- **Authentication**: Firebase Auth
-- **SMS**: MSG91/Twilio
-- **Push Notifications**: Firebase Cloud Messaging
-- **Payments**: Razorpay/Stripe
-- **Maps**: Google Maps API
-- **Email**: SendGrid/AWS SES
-
-### DevOps
-- **Containerization**: Docker
-- **Orchestration**: Kubernetes
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: ELK Stack
-- **Tracing**: Jaeger
-
-## Service Communication
-
-### Synchronous Communication
-- REST API via HTTP/HTTPS
-- gRPC for internal service-to-service communication
-- Protocol Buffers for serialization
-
-### Asynchronous Communication
-- Kafka for event-driven architecture
-- Event topics: orders, payments, notifications, rider_updates
-
-## Database Schema
-
-### Main Database (PostgreSQL)
-- users
-- restaurants
-- menu_items
-- orders
-- order_items
-- riders
-- payments
-- addresses
-- reviews
-- coupons
-- notifications
-
-### Cache (Redis)
-- User sessions
-- Restaurant availability
-- Order status cache
-- Rider location cache
-- Rate limiting
-
-## API Design
-
-### RESTful Endpoints
-- Versioned APIs: `/api/v1/`
-- JWT authentication
-- Rate limiting
-- Request validation
-- Standard response format
-
-### WebSocket Endpoints
-- `/ws/orders/{order_id}` - Order tracking
-- `/ws/rider/{rider_id}` - Rider location updates
-- `/ws/chat/{order_id}` - In-app chat
-
-## Security
-
-### Authentication
-- JWT tokens with refresh tokens
-- OAuth 2.0 for social login
-- Phone OTP verification
-- 2FA for admin accounts
-
-### Authorization
-- Role-based access control (RBAC)
-- API key authentication for external services
-- IP whitelisting for admin operations
-
-### Data Security
-- Encryption at rest (AES-256)
-- TLS 1.3 for data in transit
-- PCI DSS compliance for payments
-- GDPR compliance for user data
-
-## Deployment
-
-### Development
-- Docker Compose for local development
-- Hot reload with air
-- Mock services for external dependencies
-
-### Production
-- Kubernetes cluster
-- Horizontal Pod Autoscaling
-- Circuit breakers
-- Retry mechanisms
-- Rate limiting
-
-## Monitoring
-
-### Metrics
-- Request rate, latency, error rate
-- Database connection pool metrics
-- Cache hit/miss ratio
-- Kafka consumer lag
-- Custom business metrics
-
-### Logging
-- Structured logging with JSON
-- Log levels: DEBUG, INFO, WARN, ERROR
-- Correlation IDs for request tracing
-- Sensitive data masking
-
-### Alerting
-- Service health checks
-- Error rate thresholds
-- Database connection failures
-- Kafka consumer lag alerts
-- Payment gateway failures
-
-## Getting Started
-
-### Prerequisites
-- Go 1.21+
-- Docker & Docker Compose
-- PostgreSQL 14+
-- Redis 7+
-- Kafka 3.5+
-
-### Setup
-1. Clone the repository
-2. Copy `.env.example` to `.env`
-3. Configure environment variables
-4. Run `docker-compose up -d` for infrastructure
-5. Run `make build` to build services
-6. Run `make run` to start all services
-
-### Development
-```bash
-# Run specific service
-go run cmd/auth-service/main.go
-
-# Run tests
-go test ./...
-
-# Generate mocks
-go generate ./...
+    %% DB Connections
+    Auth & Restaurant & Order & Rider & Payment -->|Data Store| Postgres
+    Restaurant & Order & Rider & Payment -->|Distributed Cache| Redis
+    Order & Rider & Payment & Notification -->|Event Streaming| Kafka
 ```
 
-## Service Port Allocation
+---
 
-- Auth Service: 8001
-- Restaurant Service: 8002
-- Order Service: 8003
-- Rider Service: 8004
-- Payment Service: 8005
-- Notification Service: 8006
-- Analytics Service: 8007
-- Admin Service: 8008
-- API Gateway: 8080
+## 2. Order Lifecycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> PLACED : Create Order & Authorize Payment
+    
+    PLACED --> RESTAURANT_ACCEPTED : Restaurant Approves Order
+    PLACED --> RESTAURANT_REJECTED : Auto-Refund Triggered
+    
+    RESTAURANT_ACCEPTED --> PREPARING : Prep Commenced
+    PREPARING --> READY_FOR_PICKUP : Prep Completed / KDS Marked
+    
+    READY_FOR_PICKUP --> RIDER_ASSIGNED : Radius Match / Assign Event
+    
+    state RiderReassignment {
+        RIDER_ASSIGNED --> PLACED : Reassigned if Rider Rejects/Ignores in 15s
+    }
+    
+    RIDER_ASSIGNED --> RIDER_ARRIVED_RESTAURANT : Arrival Checkpoint
+    RIDER_ARRIVED_RESTAURANT --> PICKED_UP : Food Collected / OTP Validated
+    PICKED_UP --> RIDER_ARRIVED_CUSTOMER : Location Proximity Match
+    RIDER_ARRIVED_CUSTOMER --> DELIVERED : Delivery Handshake Completed
+    
+    RESTAURANT_REJECTED --> REFUNDED
+    CUSTOMER_CANCELLED --> REFUNDED : Safe State Cancellation
+```
+
+Every state transition publishes a message to the `order-events` Kafka topic.
+
+---
+
+## 3. Core Microservices Catalog
+
+### Auth Service (Port 8001)
+- User, partner, and rider onboarding flows.
+- JWT-based authentication with validation checks.
+
+### Restaurant Service (Port 8002)
+- Catalog searches, menus, items, categories, and availability state toggling.
+- **Spatial Caching**: Rounded geohash coordinate grid caching bucket (~1.1km area) in Redis with a 2-minute TTL.
+- **Write-Through Menu Cache**: Cache menu details for 5 minutes; automatically invalidates cached items immediately on item update, deletion, or category edits.
+- **PostGIS Search**: Queries service zones using `ST_DWithin` spatial geometries.
+
+### Order Service (Port 8003)
+- Handles cart validation, pricing breakdowns, dynamic surge multipliers, and state changes.
+- **Strict Pricing Calculations**:
+  - Platform Fee: Flat ₹0.50
+  - Packaging Fee: Flat ₹0.99
+  - Surge multiplier: 50% delivery charge markup during peak hours (12-3pm, 7-10pm).
+  - GST Splits: 5% food/packing tax vs 18% service charge tax.
+  - Coupon Engine: Validation rules (e.g. `CRAVEX50` offering 50% off up to ₹5.00).
+- **Idempotency**: Prevents duplicate state updates using database unique constraints on transition `event_id` fields.
+- **Background ETA Predictor**: Recalculates remaining durations every 60 seconds and updates clients when delta > 2 minutes.
+
+### Rider Service (Port 8004)
+- Location updates, availability toggling, and earnings tracking.
+- **Weighted Match Scoring**:
+  `Score = 10 * (1 / (distance + 0.1)) + 2 * rating`
+- **PostGIS Nearby Filter**: Fetches nearest riders using PostGIS `ST_DWithin` boundary queries.
+
+### Payment Service (Port 8005)
+- Processes transactions and manages user wallets.
+
+### Notification Service (Port 8006)
+- Event-driven notifications via SMS, push notifications, and emails triggered by Kafka events.
+
+---
+
+## 4. Scale & Performance Engineering (v3)
+
+1. **Read/Write Splitting & Connection Pooling**:
+   - Utilizes PgBouncer in transaction mode to pool microservice database connections.
+   - Restricts Postgres connection pools on app bootstrap using GORM limits:
+     `db.DB().SetMaxOpenConns((core_count * 2) + disk_spindles)`
+2. **Database Performance Indexing**:
+   - Spatial Indexes: GIST indexing on `delivery_zone` and `location` columns.
+   - Composite Index: `idx_order_customer_created` on `(user_id, created_at DESC)` for high-speed user histories.
+   - Partial Indexes:
+     - `idx_order_status_restaurant` on active orders: `WHERE status NOT IN ('delivered', 'cancelled')`.
+     - `idx_menu_item_restaurant_available` on menus: `WHERE is_available = true`.
+3. **Database-Level Geospatial Triggers**:
+   - Syncs rider POINT coordinate geometries automatically on latitude/longitude updates.
+   - Generates a default 5km bounding box POLYGON on restaurant registration.
+4. **Flutter Client Image Caching**:
+   - Integrates `CachedNetworkImage` disk-cache loading for restaurant grids to prevent redundant HTTP roundtrips.
+
+---
+
+## 5. Getting Started (Backend)
+
+### Prerequisites
+- Docker & Docker Compose
+- Go 1.25
+
+### Run Service Infrastructure
+Build and launch all services in detached mode:
+```bash
+docker compose build
+docker compose up -d
+```
+
+### Database Connection Parameters
+- **Host**: `localhost:5435`
+- **Database**: `cravex`
+- **Username**: `postgres`
+- **Password**: `Raj@76330Raj`
+
+### Microservice HTTP Port Mapping
+
+| Service | Port | Health Endpoint |
+|---|---|---|
+| **Kong API Gateway** | `8080` | `http://localhost:8080/api/v1` |
+| **Auth Service** | `8001` | `http://localhost:8001/health` |
+| **Restaurant Service** | `8002` | `http://localhost:8002/health` |
+| **Order Service** | `8003` | `http://localhost:8003/health` |
+| **Rider Service** | `8004` | `http://localhost:8004/health` |
+| **Payment Service** | `8005` | `http://localhost:8005/health` |
+| **Notification Service** | `8006` | `http://localhost:8006/health` |
+| **PostgreSQL Database** | `5435` | `localhost:5435` (cravex) |
+| **Redis Cache** | `6379` | `localhost:6379` |
+| **Apache Kafka** | `9092` | `localhost:9092` |
