@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # Production Database (with backup)
+  postgres-prod:
+    image: postgres:15-alpine
+    container_name: cravex-postgres-prod
+    environment:
+      POSTGRES_USER: ${PROD_DB_USER}
+      POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
+      POSTGRES_DB: cravex_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PROD_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Production Redis (with persistence)
+  redis-prod:
+    image: redis:7-alpine
+    container_name: cravex-redis-prod
+    command: redis-server --appendonly yes --requirepass ${PROD_REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-prod-data:/data
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Production Kafka (with replication)
+  zookeeper-prod:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: cravex-zookeeper-prod
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-prod-data:/var/lib/zookeeper/data
+      - zookeeper-prod-logs:/var/lib/zookeeper/log
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+
+  kafka-prod:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: cravex-kafka-prod
+    depends_on:
+      - zookeeper-prod
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-prod:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-prod:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    volumes:
+      - kafka-prod-data:/var/lib/kafka/data
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # API Service (Production)
+  api-prod:
+    image: ${DOCKER_USERNAME}/cravex-backend:latest
+    container_name: cravex-api-prod
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgres://${PROD_DB_USER}:${PROD_DB_PASSWORD}@postgres-prod:5432/cravex_prod?sslmode=require
+      REDIS_URL: redis://:${PROD_REDIS_PASSWORD}@redis-prod:6379
+      KAFKA_BROKERS: kafka-prod:29092
+      JWT_SECRET: ${PROD_JWT_SECRET}
+      STRIPE_API_KEY: ${PROD_STRIPE_API_KEY}
+      RAZORPAY_API_KEY: ${PROD_RAZORPAY_API_KEY}
+      PAYTM_API_KEY: ${PROD_PAYTM_API_KEY}
+      PHONEPE_API_KEY: ${PROD_PHONEPE_API_KEY}
+      AWS_ACCESS_KEY: ${PROD_AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${PROD_AWS_SECRET_KEY}
+      AWS_REGION: ${PROD_AWS_REGION}
+      DEBUG: "false"
+      LOG_LEVEL: warn
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+      kafka-prod:
+        condition: service_healthy
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Nginx Reverse Proxy (Production)
+  nginx-prod:
+    image: nginx:alpine
+    container_name: cravex-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api-prod
+    networks:
+      - cravex-prod-network
+    restart: unless-stopped
+
+volumes:
+  postgres-prod-data:
+  redis-prod-data:
+  zookeeper-prod-data:
+  zookeeper-prod-logs:
+  kafka-prod-data:
+
+networks:
+  cravex-prod-network:
+    driver: bridge

@@ -61,31 +61,23 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    final phone = ref.read(phoneNumberProvider);
-    final user = await ref.read(authProvider.notifier).verifyOtp(
+    final phone = ref.read(_phoneProvider);
+    
+    await ref.read(authProvider.notifier).verifyOtp(
       phone,
       _otp,
-      referralCode: _referralCtrl.text.trim(),
+      AppConstants.userTypeCustomer,
     );
+    
     setState(() => _isLoading = false);
+    
     if (!mounted) return;
-    if (user != null) {
-      // Role-based routing
-      switch (user.userType) {
-        case 'customer':
-          context.go('/home');
-          break;
-        case 'restaurant':
-        case 'rider':
-        case 'admin':
-          // Show role portal switcher
-          context.go('/role-portal');
-          break;
-        default:
-          context.go('/home');
-      }
+    
+    final authState = ref.read(authProvider);
+    if (authState.isAuthenticated) {
+      context.go('/home');
     } else {
-      _showError(ref.read(authProvider).error ?? 'Invalid OTP');
+      _showError(authState.error ?? 'Invalid OTP');
       // Shake / clear
       for (final c in _controllers) { c.clear(); }
       _focusNodes[0].requestFocus();
@@ -94,17 +86,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resendOtp() async {
     if (_resendCountdown > 0) return;
-    final phone = ref.read(phoneNumberProvider);
-    await ref.read(authProvider.notifier).sendOtp(phone);
-    _startCountdown();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP resent successfully'),
-          backgroundColor: Color(0xFF2ECC71),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    final phone = ref.read(_phoneProvider);
+    
+    await ref.read(authProvider.notifier).sendOtp(phone, AppConstants.userTypeCustomer);
+    
+    final authState = ref.read(authProvider);
+    if (authState.error != null) {
+      _showError(authState.error!);
+    } else {
+      _startCountdown();
+      _showSuccess('OTP sent successfully');
     }
   }
 
@@ -113,6 +104,17 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       SnackBar(
         content: Text(msg),
         backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: const Color(0xFF2ECC71),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -133,7 +135,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phone = ref.watch(phoneNumberProvider);
+    final phone = ref.watch(_phoneProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

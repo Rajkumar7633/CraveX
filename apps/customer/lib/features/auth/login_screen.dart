@@ -45,14 +45,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       return;
     }
     setState(() => _isLoading = true);
-    final ok = await ref.read(authProvider.notifier).sendOtp(phone);
+    
+    await ref.read(authProvider.notifier).sendOtp(phone, AppConstants.userTypeCustomer);
+    
     setState(() => _isLoading = false);
-    if (ok && mounted) {
-      ref.read(_phoneProvider.notifier).state = phone;
-      context.push('/otp');
+    
+    final authState = ref.read(authProvider);
+    if (authState.error != null) {
+      _showError(authState.error!);
     } else if (mounted) {
-      final error = ref.read(authProvider).error ?? 'Failed to send OTP';
-      _showError(error);
+      ref.read(_phoneProvider.notifier).state = phone;
+      context.go('/otp');
     }
   }
 

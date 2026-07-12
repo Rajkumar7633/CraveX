@@ -189,9 +189,20 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _requestLocationPermission();
+  }
+
+  Future<void> _requestLocationPermission() async {
+    await ref.read(locationProvider.notifier).requestLocationPermission();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final restaurantsAsync = ref.watch(nearbyRestaurantsProvider);
-    final user = ref.watch(authProvider).user;
+    final restaurantState = ref.watch(restaurantProvider);
+    final locationState = ref.watch(locationProvider);
+    final authState = ref.watch(authProvider);
 
     return CustomScrollView(
       slivers: [
@@ -207,34 +218,43 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               children: [
                 const Icon(Icons.location_on_rounded, color: Color(0xFFE23744), size: 18),
                 const SizedBox(width: 4),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Delivering to', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    Row(
-                      children: [
-                        Text(
-                          'Current Location',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1C1C1C)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Delivering to', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      GestureDetector(
+                        onTap: () => _requestLocationPermission(),
+                        child: Row(
+                          children: [
+                            Text(
+                              locationState.hasPermission && locationState.currentPosition != null
+                                  ? 'Current Location'
+                                  : 'Set Location',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1C1C1C)),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+                          ],
                         ),
-                        const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
                 const Spacer(),
-                if (user != null)
+                if (authState.isAuthenticated)
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: const Color(0xFFFFEEEF),
                     child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                      authState.user?.name.isNotEmpty == true 
+                          ? authState.user!.name[0].toUpperCase() 
+                          : 'U',
                       style: const TextStyle(color: Color(0xFFE23744), fontWeight: FontWeight.w700),
                     ),
                   )
                 else
                   TextButton.icon(
-                    onPressed: () => context.go('/login'),
+                    onPressed: () => context.go('/onboarding'),
                     icon: const Icon(Icons.login_rounded, color: Color(0xFFE23744), size: 16),
                     label: const Text(
                       'Login',
@@ -415,52 +435,60 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
         ),
 
         // Restaurant list
-        restaurantsAsync.when(
-          loading: () => SliverList(
+        if (restaurantState.isLoading)
+          SliverList(
             delegate: SliverChildBuilderDelegate(
               (_, __) => const _RestaurantShimmerCard(),
               childCount: 4,
             ),
-          ),
-          error: (err, _) => SliverToBoxAdapter(
-            child: _ErrorWidget(message: 'Could not load restaurants', onRetry: () => ref.invalidate(nearbyRestaurantsProvider)),
-          ),
-          data: (restaurants) {
-            var filtered = restaurants;
-            if (_vegOnly) filtered = filtered.where((r) => r.isPureVeg).toList();
-            if (filtered.isEmpty) {
-              return SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      children: [
-                        const Text('🍽️', style: TextStyle(fontSize: 48)),
-                        const SizedBox(height: 12),
-                        Text(
-                          restaurants.isEmpty
-                              ? 'No restaurants available right now'
-                              : 'No vegetarian restaurants nearby',
-                          style: const TextStyle(fontSize: 15, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, i) => _RestaurantCard(restaurant: filtered[i]),
-                childCount: filtered.length,
-              ),
-            );
-          },
-        ),
+          )
+        else if (restaurantState.hasError)
+          SliverToBoxAdapter(
+            child: _ErrorWidget(
+              message: restaurantState.errorMessage ?? 'Could not load restaurants',
+              onRetry: () => ref.read(restaurantProvider.notifier).refresh(),
+            ),
+          )
+        else
+          _buildRestaurantList(restaurantState.restaurants),
 
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
+    );
+  }
+
+  Widget _buildRestaurantList(List<Restaurant> restaurants) {
+    var filtered = restaurants;
+    if (_vegOnly) filtered = filtered.where((r) => r.isPureVeg).toList();
+    
+    if (filtered.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              children: [
+                const Text('🍽️', style: TextStyle(fontSize: 48)),
+                const SizedBox(height: 12),
+                Text(
+                  restaurants.isEmpty
+                      ? 'No restaurants available right now'
+                      : 'No vegetarian restaurants nearby',
+                  style: const TextStyle(fontSize: 15, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, i) => _RestaurantCard(restaurant: filtered[i]),
+        childCount: filtered.length,
+      ),
     );
   }
 }

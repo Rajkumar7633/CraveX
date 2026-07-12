@@ -31,20 +31,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _navigate() {
     if (!mounted) return;
-    final auth = ref.read(authProvider);
-    if (auth.isAuthenticated && auth.user != null) {
-      final role = auth.user!.userType;
-      switch (role) {
-        case 'customer':
+    final authState = ref.read(authProvider);
+    if (authState.isAuthenticated) {
+      final userType = authState.userType;
+      switch (userType) {
+        case AppConstants.userTypeCustomer:
           context.go('/home');
           break;
-        case 'restaurant':
-        case 'rider':
-        case 'admin':
+        case AppConstants.userTypeRestaurant:
+        case AppConstants.userTypeRider:
+        case AppConstants.userTypeAdmin:
           context.go('/role-portal');
           break;
         default:
-          context.go('/home');
+          context.go('/onboarding');
       }
     } else {
       context.go('/onboarding');

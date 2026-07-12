@@ -1,0 +1,69 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cravex-ingress
+  namespace: cravex
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.cravex.com
+    secretName: cravex-tls
+  rules:
+  - host: api.cravex.com
+    http:
+      paths:
+      - path: /auth(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 8001
+      - path: /restaurants(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: restaurant-service
+            port:
+              number: 8002
+      - path: /orders(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 8003
+      - path: /riders(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: rider-service
+            port:
+              number: 8004
+      - path: /payments(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: payment-service
+            port:
+              number: 8005
+      - path: /notifications(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8006
+      - path: /routing(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: routing-service
+            port:
+              number: 8007

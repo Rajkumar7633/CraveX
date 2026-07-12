@@ -210,3 +210,75 @@ func min(a, b int64) int64 {
 	}
 	return b
 }
+
+// Endpoint-specific rate limit configuration
+type EndpointRateLimit struct {
+	Path       string
+	Method     string
+	RateLimit  int
+	Window     time.Duration
+	BurstLimit int // For token bucket
+}
+
+// ConfigurableRateLimiter allows different rate limits per endpoint type
+type ConfigurableRateLimiter struct {
+	redisClient *redis.Client
+	configs     map[string]*EndpointRateLimit // key: "METHOD:path"
+}
+
+func NewConfigurableRateLimiter(redisClient *redis.Client) *ConfigurableRateLimiter {
+	return &ConfigurableRateLimiter{
+		redisClient: redisClient,
+		configs:     make(map[string]*EndpointRateLimit),
+	}
+}
+
+// AddEndpointConfig adds rate limit configuration for a specific endpoint
+func (crl *ConfigurableRateLimiter) AddEndpointConfig(config *EndpointRateLimit) {
+	key := fmt.Sprintf("%s:%s", config.Method, config.Path)
+	crl.configs[key] = config
+}
+
+// Middleware returns a middleware that applies endpoint-specific rate limits
+func (crl *ConfigurableRateLimiter) Middleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := fmt.Sprintf("%s:%s", c.Request.Method, c.Request.URL.Path)
+
+		config, exists := crl.configs[key]
+		if !exists {
+			// No specific config, use default
+			c.Next()
+			return
+		}
+
+		// Apply rate limiting based on config
+		limiter := NewRateLimiter(crl.redisClient, config.RateLimit, config.Window)
+		limiter.Middleware()(c)
+	}
+}
+
+// GetDefaultRateLimitConfigs returns default configurations for common endpoints
+func GetDefaultRateLimitConfigs() []*EndpointRateLimit {
+	return []*EndpointRateLimit{
+		// OTP endpoints - very strict to prevent abuse
+		{Path: "/api/v1/auth/send-otp", Method: "POST", RateLimit: 3, Window: time.Hour},
+		{Path: "/api/v1/auth/verify-otp", Method: "POST", RateLimit: 10, Window: time.Hour},
+
+		// Authentication endpoints
+		{Path: "/api/v1/auth/login", Method: "POST", RateLimit: 5, Window: time.Minute},
+		{Path: "/api/v1/auth/register", Method: "POST", RateLimit: 3, Window: time.Hour},
+
+		// Order endpoints
+		{Path: "/api/v1/orders", Method: "POST", RateLimit: 10, Window: time.Minute},
+		{Path: "/api/v1/orders", Method: "GET", RateLimit: 100, Window: time.Minute},
+
+		// Payment endpoints
+		{Path: "/api/v1/payments", Method: "POST", RateLimit: 5, Window: time.Minute},
+
+		// Search endpoints
+		{Path: "/api/v1/restaurants/search", Method: "GET", RateLimit: 50, Window: time.Minute},
+
+		// Review endpoints
+		{Path: "/api/v1/reviews", Method: "POST", RateLimit: 5, Window: time.Hour},
+	}
+}

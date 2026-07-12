@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import '../models/error_response.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -62,8 +63,25 @@ class ApiClient {
             }
           } catch (e) {
             log('Token refresh failed: $e');
+            // Clear tokens on refresh failure
+            await clearTokens();
           }
         }
+        
+        // Convert Dio error to ErrorResponse
+        if (error.response != null) {
+          final errorResponse = ErrorResponse.fromJson(
+            error.response?.data as Map<String, dynamic>? ?? {},
+          );
+          final dioError = DioException(
+            requestOptions: error.requestOptions,
+            response: error.response,
+            type: error.type,
+            error: errorResponse,
+          );
+          return handler.next(dioError);
+        }
+        
         handler.next(error);
       },
     ));
