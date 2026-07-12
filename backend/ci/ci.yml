@@ -1,0 +1,78 @@
+name: CraveX CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    name: Go Backend Services Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Verify Auth Service
+        run: |
+          cd backend/cmd/auth-service
+          go build -v .
+
+      - name: Verify Restaurant Service
+        run: |
+          cd backend/cmd/restaurant-service
+          go build -v .
+
+      - name: Verify Order Service & Run Tests
+        run: |
+          cd backend/cmd/order-service
+          go test -v ./...
+          go build -v .
+
+      - name: Verify Rider Service
+        run: |
+          cd backend/cmd/rider-service
+          go build -v .
+
+      - name: Verify Payment Service
+        run: |
+          cd backend/cmd/payment-service
+          go build -v .
+
+      - name: Verify Notification Service
+        run: |
+          cd backend/cmd/notification-service
+          go build -v .
+
+  flutter-analyze:
+    name: Flutter Packages Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Widgets Package
+        run: |
+          cd packages/widgets
+          flutter pub get
+          flutter analyze
