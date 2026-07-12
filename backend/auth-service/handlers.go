@@ -2,6 +2,7 @@ package main
 
 import (
     "net/http"
+    "sync"
     "time"
 
     "github.com/gin-gonic/gin"
@@ -58,12 +59,66 @@ func loginHandler(c *gin.Context) {
     c.JSON(http.StatusOK, resp)
 }
 
+type OTPTracker struct {
+	Count       int
+	LastRequest time.Time
+}
+
+var (
+	otpTrackerMap = make(map[string]*OTPTracker)
+	otpTrackerMu  sync.Mutex
+)
+
 func otpHandler(c *gin.Context) {
     var req OTPRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
         return
     }
+
+	// OTP Abuse Protection Rate Limiter
+	otpTrackerMu.Lock()
+	tracker, exists := otpTrackerMap[req.PhoneNumber]
+	now := time.Now()
+	if !exists {
+		tracker = &OTPTracker{Count: 1, LastRequest: now}
+		otpTrackerMap[req.PhoneNumber] = tracker
+	} else {
+		// Reset count if last request was more than 1 hour ago
+		if now.Sub(tracker.LastRequest) > time.Hour {
+			tracker.Count = 1
+			tracker.LastRequest = now
+		} else {
+			// Limit to maximum of 3 requests per hour
+			if tracker.Count >= 3 {
+				otpTrackerMu.Unlock()
+				c.JSON(http.StatusTooManyRequests, gin.H{"error": "Maximum of 3 OTP requests per hour exceeded. Please try again later."})
+				return
+			}
+
+			// Cooldown checks (exponential: 1st retry: 5s, 2nd retry: 30s)
+			var cooldown time.Duration
+			if tracker.Count == 1 {
+				cooldown = 5 * time.Second
+			} else if tracker.Count == 2 {
+				cooldown = 30 * time.Second
+			}
+			if now.Sub(tracker.LastRequest) < cooldown {
+				remaining := cooldown - now.Sub(tracker.LastRequest)
+				otpTrackerMu.Unlock()
+				c.JSON(http.StatusTooManyRequests, gin.H{
+					"error":            "Rate limit exceeded. Cooldown active.",
+					"cooldown_seconds": int(remaining.Seconds()),
+				})
+				return
+			}
+
+			tracker.Count++
+			tracker.LastRequest = now
+		}
+	}
+	otpTrackerMu.Unlock()
+
     // Mock OTP verification – always succeed
     token, err := generateJWT("user-otp-"+req.PhoneNumber, req.PhoneNumber+"@example.com")
     if err != nil {
