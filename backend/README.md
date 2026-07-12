@@ -171,3 +171,10 @@ Every state transition publishes a message to the `order-events` Kafka topic.
 | **PostgreSQL Database** | `5435` | `localhost:5435` (cravex) |
 | **Redis Cache** | `6379` | `localhost:6379` |
 | **Apache Kafka** | `9092` | `localhost:9092` |
+
+---
+
+## 6. API Documentation
+
+The complete endpoints, request formats, schemas, and streaming channels for the microservices stack are documented in the OpenAPI 3.0 specification file:
+- [openapi.yaml](file:///Users/apple/Desktop/zomato_clone/docs/openapi.yaml)
