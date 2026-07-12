@@ -47,6 +47,7 @@ func main() {
 	{
 		public.GET("/:id", riderHandler.GetRider)
 		public.GET("/nearby", riderHandler.FindAvailableNearby)
+		public.GET("/:id/track", riderHandler.TrackRiderLocation)
 	}
 
 	// Protected routes

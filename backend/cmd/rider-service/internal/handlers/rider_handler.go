@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -236,4 +238,73 @@ func parseFloat(s string) float64 {
 	var f float64
 	fmt.Sscanf(s, "%f", &f)
 	return f
+}
+
+func (h *RiderHandler) TrackRiderLocation(c *gin.Context) {
+	riderID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid rider ID"})
+		return
+	}
+
+	// Set headers for SSE streaming
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+
+	// Get client close channel
+	clientGone := c.Writer.CloseNotify()
+
+	// Loop and stream coordinates every 2 seconds
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	// Keep track of the last coordinates sent to optimize bandwidth and avoid redundant renders
+	var lastLat, lastLng float64
+
+	log.Printf("[SSE] Started live tracking stream for rider: %s", riderID)
+
+	for {
+		select {
+		case <-clientGone:
+			log.Printf("[SSE] Client closed connection for rider tracking: %s", riderID)
+			return
+		case <-ticker.C:
+			// Fetch rider location
+			rider, err := h.riderService.GetRider(riderID)
+			if err != nil {
+				c.SSEvent("error", "unable to fetch rider location")
+				c.Writer.Flush()
+				continue
+			}
+
+			if rider.CurrentLatitude != nil && rider.CurrentLongitude != nil {
+				lat := *rider.CurrentLatitude
+				lng := *rider.CurrentLongitude
+
+				// Only push if location changed significantly (>0.0001 coordinates, ~11m)
+				deltaLat := lat - lastLat
+				deltaLng := lng - lastLng
+				if deltaLat < 0 {
+					deltaLat = -deltaLat
+				}
+				if deltaLng < 0 {
+					deltaLng = -deltaLng
+				}
+
+				if deltaLat > 0.0001 || deltaLng > 0.0001 {
+					lastLat = lat
+					lastLng = lng
+					// Stream location event to client
+					c.SSEvent("location", gin.H{
+						"latitude":  lat,
+						"longitude": lng,
+						"timestamp": time.Now().Format(time.RFC3339),
+					})
+					c.Writer.Flush()
+				}
+			}
+		}
+	}
 }
