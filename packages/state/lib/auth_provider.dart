@@ -1,6 +1,7 @@
 // lib/auth_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:core/constants/app_constants.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref);
@@ -26,15 +27,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final Ref ref;
   AuthNotifier(this.ref) : super(AuthState());
 
+  final Dio _dio = Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
 
-
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'));
-
-  Future<void> login(String email, String password) async {
+  Future<void> login(String phone, String password) async {
     state = state.copyWith(loading: true);
     try {
       final response = await _dio.post('/auth/login', data: {
-        'email': email,
+        'phone_number': phone,
         'password': password,
       });
       final token = response.data['token'];
@@ -47,9 +46,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> loginWithOtp(String phone, String otp) async {
     state = state.copyWith(loading: true);
     try {
-      final response = await _dio.post('/auth/otp', data: {
-        'phoneNumber': phone,
-        'otp': otp,
+      final response = await _dio.post('/auth/verify-otp', data: {
+        'phone_number': phone,
+        'code': otp,
       });
       final token = response.data['token'];
       state = state.copyWith(token: token, loading: false);

@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o restaurant-service ./cmd/restaurant-service
+RUN CGO_ENABLED=0 GOOS=linux go build -o restaurant-service .
 
 # Runtime stage
 FROM alpine:latest

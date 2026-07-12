@@ -152,7 +152,7 @@ func (h *RestaurantHandler) SearchRestaurants(c *gin.Context) {
 
 // Menu Category endpoints
 func (h *RestaurantHandler) CreateCategory(c *gin.Context) {
-	restaurantID, err := uuid.Parse(c.Param("restaurant_id"))
+	restaurantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restaurant ID"})
 		return
@@ -174,7 +174,7 @@ func (h *RestaurantHandler) CreateCategory(c *gin.Context) {
 }
 
 func (h *RestaurantHandler) GetCategories(c *gin.Context) {
-	restaurantID, err := uuid.Parse(c.Param("restaurant_id"))
+	restaurantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restaurant ID"})
 		return
@@ -227,7 +227,7 @@ func (h *RestaurantHandler) DeleteCategory(c *gin.Context) {
 
 // Menu Item endpoints
 func (h *RestaurantHandler) CreateMenuItem(c *gin.Context) {
-	restaurantID, err := uuid.Parse(c.Param("restaurant_id"))
+	restaurantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restaurant ID"})
 		return
@@ -249,7 +249,7 @@ func (h *RestaurantHandler) CreateMenuItem(c *gin.Context) {
 }
 
 func (h *RestaurantHandler) GetMenuItems(c *gin.Context) {
-	restaurantID, err := uuid.Parse(c.Param("restaurant_id"))
+	restaurantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restaurant ID"})
 		return
@@ -317,7 +317,7 @@ func (h *RestaurantHandler) DeleteMenuItem(c *gin.Context) {
 }
 
 func (h *RestaurantHandler) SearchMenuItems(c *gin.Context) {
-	restaurantID, err := uuid.Parse(c.Param("restaurant_id"))
+	restaurantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid restaurant ID"})
 		return

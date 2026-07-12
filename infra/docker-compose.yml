@@ -6,8 +6,8 @@ services:
     container_name: zomato-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: zomato
+      POSTGRES_PASSWORD: Raj@76330Raj
+      POSTGRES_DB: cravex
     ports:
       - "5432:5432"
     volumes:
@@ -39,7 +39,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+      - POSTGRES_DSN=host=postgres user=postgres password=Raj@76330Raj dbname=cravex port=5432 sslmode=disable
     depends_on:
       - postgres
 
@@ -51,7 +51,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+      - POSTGRES_DSN=host=postgres user=postgres password=Raj@76330Raj dbname=cravex port=5432 sslmode=disable
     depends_on:
       - postgres
 
@@ -63,7 +63,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+      - POSTGRES_DSN=host=postgres user=postgres password=Raj@76330Raj dbname=cravex port=5432 sslmode=disable
     depends_on:
       - postgres
 
@@ -75,7 +75,7 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+      - POSTGRES_DSN=host=postgres user=postgres password=Raj@76330Raj dbname=cravex port=5432 sslmode=disable
     depends_on:
       - postgres
 
@@ -87,7 +87,7 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - POSTGRES_DSN=host=postgres user=postgres password=postgres dbname=zomato port=5432 sslmode=disable
+      - POSTGRES_DSN=host=postgres user=postgres password=Raj@76330Raj dbname=cravex port=5432 sslmode=disable
     depends_on:
       - postgres
 

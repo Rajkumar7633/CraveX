@@ -1,10 +1,15 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/zomato-clone/restaurant-service/internal/cache"
 	"github.com/zomato-clone/restaurant-service/internal/models"
 	"github.com/zomato-clone/restaurant-service/internal/repository"
 )
@@ -20,11 +25,13 @@ type RestaurantService interface {
 
 type restaurantService struct {
 	restaurantRepo repository.RestaurantRepository
+	cacheService   cache.CacheService
 }
 
-func NewRestaurantService(restaurantRepo repository.RestaurantRepository) RestaurantService {
+func NewRestaurantService(restaurantRepo repository.RestaurantRepository, cacheService cache.CacheService) RestaurantService {
 	return &restaurantService{
 		restaurantRepo: restaurantRepo,
+		cacheService:   cacheService,
 	}
 }
 
@@ -124,6 +131,17 @@ func (s *restaurantService) SearchRestaurants(query string, cuisine string, lat,
 	var restaurants []*models.Restaurant
 	var err error
 
+	// Cache read path: check Redis if searching nearby
+	var cacheKey string
+	if lat != 0 && lng != 0 && query == "" && cuisine == "" {
+		cacheKey = fmt.Sprintf("restaurants:nearby:%.2f:%.2f:%.1f", lat, lng, radiusKm)
+		err = s.cacheService.Get(context.Background(), cacheKey, &restaurants)
+		if err == nil {
+			log.Printf("[Cache Hit] Found nearby restaurants in spatial grid bucket")
+			return restaurants, nil
+		}
+	}
+
 	if cuisine != "" {
 		restaurants, err = s.restaurantRepo.FindByCuisine(cuisine)
 	} else if query != "" {
@@ -136,6 +154,11 @@ func (s *restaurantService) SearchRestaurants(query string, cuisine string, lat,
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Cache write path: store nearby lists for 2 mins (TTL per spec)
+	if cacheKey != "" {
+		_ = s.cacheService.Set(context.Background(), cacheKey, restaurants, 2*time.Minute)
 	}
 
 	return restaurants, nil
@@ -165,12 +188,14 @@ type MenuService interface {
 type menuService struct {
 	categoryRepo repository.MenuCategoryRepository
 	itemRepo     repository.MenuItemRepository
+	cacheService cache.CacheService
 }
 
-func NewMenuService(categoryRepo repository.MenuCategoryRepository, itemRepo repository.MenuItemRepository) MenuService {
+func NewMenuService(categoryRepo repository.MenuCategoryRepository, itemRepo repository.MenuItemRepository, cacheService cache.CacheService) MenuService {
 	return &menuService{
 		categoryRepo: categoryRepo,
 		itemRepo:     itemRepo,
+		cacheService: cacheService,
 	}
 }
 
@@ -237,11 +262,32 @@ func (s *menuService) CreateMenuItem(restaurantID uuid.UUID, req *models.CreateM
 		return nil, err
 	}
 
+	// Write-through: invalidate cached menu for this restaurant
+	key := fmt.Sprintf("menu:restaurant:%s", restaurantID.String())
+	_ = s.cacheService.Delete(context.Background(), key)
+
 	return item, nil
 }
 
 func (s *menuService) GetMenuItems(restaurantID uuid.UUID) ([]*models.MenuItem, error) {
-	return s.itemRepo.FindByRestaurantID(restaurantID)
+	key := fmt.Sprintf("menu:restaurant:%s", restaurantID.String())
+	var items []*models.MenuItem
+	err := s.cacheService.Get(context.Background(), key, &items)
+	if err == nil {
+		log.Printf("[Cache Hit] Fetched menu for restaurant %s from Redis", restaurantID)
+		return items, nil
+	}
+
+	log.Printf("[Cache Miss] Fetching menu from DB for restaurant %s", restaurantID)
+	items, err = s.itemRepo.FindByRestaurantID(restaurantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache menu for 5 minutes (TTL per spec)
+	_ = s.cacheService.Set(context.Background(), key, items, 5*time.Minute)
+
+	return items, nil
 }
 
 func (s *menuService) GetMenuItem(id uuid.UUID) (*models.MenuItem, error) {
@@ -300,11 +346,32 @@ func (s *menuService) UpdateMenuItem(id uuid.UUID, req *models.UpdateMenuItemReq
 		item.Customizations = *req.Customizations
 	}
 
-	return s.itemRepo.Update(item)
+	if err := s.itemRepo.Update(item); err != nil {
+		return err
+	}
+
+	// Write-through: invalidate cached menu
+	key := fmt.Sprintf("menu:restaurant:%s", item.RestaurantID.String())
+	_ = s.cacheService.Delete(context.Background(), key)
+
+	return nil
 }
 
 func (s *menuService) DeleteMenuItem(id uuid.UUID) error {
-	return s.itemRepo.Delete(id)
+	item, err := s.itemRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.itemRepo.Delete(id); err != nil {
+		return err
+	}
+
+	// Write-through: invalidate cached menu
+	key := fmt.Sprintf("menu:restaurant:%s", item.RestaurantID.String())
+	_ = s.cacheService.Delete(context.Background(), key)
+
+	return nil
 }
 
 func (s *menuService) SearchMenuItems(query string, restaurantID uuid.UUID) ([]*models.MenuItem, error) {

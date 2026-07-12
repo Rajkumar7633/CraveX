@@ -9,7 +9,7 @@ import (
 
 type Notification struct {
 	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID      uuid.UUID  `json:"user_id" gorm:"not null;index"`
+	UserID      uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
 	Title       string     `json:"title" gorm:"not null"`
 	Body        string     `json:"body" gorm:"not null"`
 	Type        string     `json:"type" gorm:"not null"` // order, payment, promotion, system
@@ -21,7 +21,7 @@ type Notification struct {
 
 type NotificationPreference struct {
 	ID              uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID          uuid.UUID `json:"user_id" gorm:"uniqueIndex;not null"`
+	UserID          uuid.UUID `json:"user_id" gorm:"type:uuid;uniqueIndex;not null"`
 	PushEnabled     bool      `json:"push_enabled" gorm:"default:true"`
 	EmailEnabled    bool      `json:"email_enabled" gorm:"default:true"`
 	SMSEnabled      bool      `json:"sms_enabled" gorm:"default:false"`

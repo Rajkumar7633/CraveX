@@ -1,40 +1,67 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:theme/app_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'veg_indicator.dart';
 
 class RestaurantCard extends StatelessWidget {
-  final Restaurant restaurant;
-  final VoidCallback onTap;
-  final VoidCallback? onFavorite;
-  final bool isFavorite;
+	final Restaurant restaurant;
+	final VoidCallback onTap;
+	final VoidCallback? onFavorite;
+	final bool isFavorite;
 
-  const RestaurantCard({
-    super.key,
-    required this.restaurant,
-    required this.onTap,
-    this.onFavorite,
-    this.isFavorite = false,
-  });
+	const RestaurantCard({
+		super.key,
+		required this.restaurant,
+		required this.onTap,
+		this.onFavorite,
+		this.isFavorite = false,
+	});
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: 160,
-                  width: double.infinity,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.restaurant, size: 48, color: Colors.grey),
-                ),
+	@override
+	Widget build(BuildContext context) {
+		return Card(
+			margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+			clipBehavior: Clip.antiAlias,
+			child: InkWell(
+				onTap: onTap,
+				child: Column(
+					crossAxisAlignment: CrossAxisAlignment.start,
+					children: [
+						Stack(
+							children: [
+								if (restaurant.coverImage != null && restaurant.coverImage!.isNotEmpty)
+									CachedNetworkImage(
+										imageUrl: restaurant.coverImage!,
+										height: 160,
+										width: double.infinity,
+										fit: BoxFit.cover,
+										placeholder: (context, url) => Container(
+											height: 160,
+											width: double.infinity,
+											color: Colors.grey[200],
+											child: const Center(
+												child: SizedBox(
+													width: 24,
+													height: 24,
+													child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryRed),
+												),
+											),
+										),
+										errorWidget: (context, url, error) => Container(
+											height: 160,
+											width: double.infinity,
+											color: Colors.grey[300],
+											child: const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+										),
+									)
+								else
+									Container(
+										height: 160,
+										width: double.infinity,
+										color: Colors.grey[300],
+										child: const Icon(Icons.restaurant, size: 48, color: Colors.grey),
+									),
                 if (restaurant.hasOffer)
                   Positioned(
                     top: 8,

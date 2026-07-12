@@ -29,6 +29,12 @@ class ApiClient {
         if (_token != null) {
           options.headers['Authorization'] = 'Bearer $_token';
         }
+        // Prepend /api/v1 if path is not a health check and doesn't already have it
+        final path = options.path;
+        if (!path.startsWith('/api/v1') && !path.startsWith('api/v1') && path != '/health' && path != 'health') {
+          final prefix = path.startsWith('/') ? '/api/v1' : '/api/v1/';
+          options.path = '$prefix$path';
+        }
         handler.next(options);
       },
     ));

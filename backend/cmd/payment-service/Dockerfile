@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o auth-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -o payment-service .
 
 # Runtime stage
 FROM alpine:latest
@@ -22,11 +22,8 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/auth-service .
+COPY --from=builder /app/payment-service .
 
-# Copy env file
-COPY .env.example .env
+EXPOSE 8005
 
-EXPOSE 8001
-
-CMD ["./auth-service"]
+CMD ["./payment-service"]

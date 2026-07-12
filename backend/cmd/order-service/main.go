@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zomato-clone/order-service/internal/config"
 	"github.com/zomato-clone/order-service/internal/handlers"
+	"github.com/zomato-clone/order-service/internal/messaging"
 	"github.com/zomato-clone/order-service/internal/repository"
 	"github.com/zomato-clone/order-service/internal/services"
 )
@@ -26,8 +27,20 @@ func main() {
 	orderItemRepo := repository.NewOrderItemRepository(db)
 	statusHistoryRepo := repository.NewOrderStatusHistoryRepository(db)
 
+	// Initialize Kafka producer
+	var kafkaProducer *messaging.KafkaProducer
+	if cfg.KafkaURL != "" {
+		var err error
+		kafkaProducer, err = messaging.NewKafkaProducer([]string{cfg.KafkaURL})
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Kafka producer: %v. Continuing without Kafka.", err)
+		} else {
+			defer kafkaProducer.Close()
+		}
+	}
+
 	// Initialize services
-	orderService := services.NewOrderService(orderRepo, orderItemRepo, statusHistoryRepo)
+	orderService := services.NewOrderService(orderRepo, orderItemRepo, statusHistoryRepo, kafkaProducer)
 
 	// Initialize handlers
 	orderHandler := handlers.NewOrderHandler(orderService)

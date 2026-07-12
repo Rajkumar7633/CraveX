@@ -74,8 +74,10 @@ func (r *riderRepository) UpdateAvailability(id uuid.UUID, isAvailable bool) err
 
 func (r *riderRepository) FindAvailableNearby(latitude, longitude float64, radiusKm float64) ([]*models.Rider, error) {
 	var riders []*models.Rider
-	// Simple query - in production use PostGIS for geospatial queries
-	err := r.db.Where("is_online = ? AND is_available = ? AND is_active = ?", true, true, true).Find(&riders).Error
+	radiusMeters := radiusKm * 1000.0
+	err := r.db.Where("is_online = ? AND is_available = ? AND is_active = ?", true, true, true).
+		Where("ST_DWithin(location::geography, ST_SetSRID(ST_Point(?, ?), 4326)::geography, ?)", longitude, latitude, radiusMeters).
+		Find(&riders).Error
 	if err != nil {
 		return nil, err
 	}

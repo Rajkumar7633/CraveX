@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/zomato-clone/restaurant-service/internal/cache"
 	"github.com/zomato-clone/restaurant-service/internal/config"
 	"github.com/zomato-clone/restaurant-service/internal/handlers"
 	"github.com/zomato-clone/restaurant-service/internal/repository"
@@ -26,9 +27,15 @@ func main() {
 	categoryRepo := repository.NewMenuCategoryRepository(db)
 	itemRepo := repository.NewMenuItemRepository(db)
 
+	// Initialize Redis cache service
+	cacheService, err := cache.NewCacheService(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize Redis cache service: %v", err)
+	}
+
 	// Initialize services
-	restaurantService := services.NewRestaurantService(restaurantRepo)
-	menuService := services.NewMenuService(categoryRepo, itemRepo)
+	restaurantService := services.NewRestaurantService(restaurantRepo, cacheService)
+	menuService := services.NewMenuService(categoryRepo, itemRepo, cacheService)
 
 	// Initialize handlers
 	restaurantHandler := handlers.NewRestaurantHandler(restaurantService, menuService)
@@ -61,13 +68,13 @@ func main() {
 		protected.DELETE("/:id", restaurantHandler.DeleteRestaurant)
 		
 		// Menu categories
-		protected.POST("/:restaurant_id/categories", restaurantHandler.CreateCategory)
-		protected.GET("/:restaurant_id/categories", restaurantHandler.GetCategories)
+		protected.POST("/:id/categories", restaurantHandler.CreateCategory)
+		protected.GET("/:id/categories", restaurantHandler.GetCategories)
 		protected.PUT("/categories/:id", restaurantHandler.UpdateCategory)
 		protected.DELETE("/categories/:id", restaurantHandler.DeleteCategory)
 		
 		// Menu items
-		protected.POST("/:restaurant_id/menu", restaurantHandler.CreateMenuItem)
+		protected.POST("/:id/menu", restaurantHandler.CreateMenuItem)
 		protected.PUT("/menu/:id", restaurantHandler.UpdateMenuItem)
 		protected.DELETE("/menu/:id", restaurantHandler.DeleteMenuItem)
 	}

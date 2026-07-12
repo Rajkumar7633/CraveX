@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -117,8 +118,62 @@ func (s *riderService) UpdateAvailability(id uuid.UUID, isAvailable bool) error 
 	return s.riderRepo.UpdateAvailability(id, isAvailable)
 }
 
+type scoredRider struct {
+	rider *models.Rider
+	score float64
+}
+
 func (s *riderService) FindAvailableNearby(latitude, longitude float64, radiusKm float64) ([]*models.Rider, error) {
-	return s.riderRepo.FindAvailableNearby(latitude, longitude, radiusKm)
+	riders, err := s.riderRepo.FindAvailableNearby(latitude, longitude, radiusKm)
+	if err != nil {
+		return nil, err
+	}
+
+	var scoredRiders []scoredRider
+
+	w1 := 10.0 // distance inverse weight
+	w2 := 2.0  // rating weight
+
+	for _, r := range riders {
+		if r.CurrentLatitude == nil || r.CurrentLongitude == nil {
+			continue
+		}
+		dist := calculateDistance(latitude, longitude, *r.CurrentLatitude, *r.CurrentLongitude)
+		// score = w1 * (1 / distance) + w2 * rating
+		score := w1*(1.0/(dist+0.1)) + w2*r.Rating
+		scoredRiders = append(scoredRiders, scoredRider{rider: r, score: score})
+	}
+
+	// Sort by score descending
+	importSort(scoredRiders)
+	var rankedRiders []*models.Rider
+	for _, sr := range scoredRiders {
+		rankedRiders = append(rankedRiders, sr.rider)
+	}
+
+	return rankedRiders, nil
+}
+
+func importSort(sr []scoredRider) {
+	for i := 0; i < len(sr); i++ {
+		for j := i + 1; j < len(sr); j++ {
+			if sr[i].score < sr[j].score {
+				sr[i], sr[j] = sr[j], sr[i]
+			}
+		}
+	}
+}
+
+func calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	// Haversine formula
+	const R = 6371.0 // Earth radius in km
+	dLat := (lat2 - lat1) * math.Pi / 180.0
+	dLon := (lon2 - lon1) * math.Pi / 180.0
+	a := math.Sin(dLat/2.0)*math.Sin(dLat/2.0) +
+		math.Cos(lat1*math.Pi/180.0)*math.Cos(lat2*math.Pi/180.0)*
+			math.Sin(dLon/2.0)*math.Sin(dLon/2.0)
+	c := 2.0 * math.Atan2(math.Sqrt(a), math.Sqrt(1.0-a))
+	return R * c
 }
 
 type RiderEarningService interface {

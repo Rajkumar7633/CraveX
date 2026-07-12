@@ -9,7 +9,7 @@ import (
 
 type Restaurant struct {
 	ID                uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID            uuid.UUID  `json:"user_id" gorm:"not null;index"`
+	UserID            uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
 	Name              string     `json:"name" gorm:"not null"`
 	Slug              string     `json:"slug" gorm:"uniqueIndex;not null"`
 	Description       string     `json:"description"`
@@ -44,7 +44,7 @@ type Restaurant struct {
 
 type MenuCategory struct {
 	ID           uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	RestaurantID uuid.UUID `json:"restaurant_id" gorm:"not null;index"`
+	RestaurantID uuid.UUID `json:"restaurant_id" gorm:"type:uuid;not null;index"`
 	Name         string    `json:"name" gorm:"not null"`
 	Description  string    `json:"description"`
 	DisplayOrder int       `json:"display_order" gorm:"default:0"`
@@ -56,8 +56,8 @@ type MenuCategory struct {
 
 type MenuItem struct {
 	ID               uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	RestaurantID     uuid.UUID  `json:"restaurant_id" gorm:"not null;index"`
-	CategoryID       *uuid.UUID `json:"category_id" gorm:"index"`
+	RestaurantID     uuid.UUID  `json:"restaurant_id" gorm:"type:uuid;not null;index"`
+	CategoryID       *uuid.UUID `json:"category_id" gorm:"type:uuid;index"`
 	Name             string     `json:"name" gorm:"not null"`
 	Description      string     `json:"description"`
 	ImageURL         string     `json:"image_url"`
@@ -82,13 +82,13 @@ type MenuItem struct {
 
 type RestaurantDocument struct {
 	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	RestaurantID    uuid.UUID  `json:"restaurant_id" gorm:"not null;index"`
+	RestaurantID    uuid.UUID  `json:"restaurant_id" gorm:"type:uuid;not null;index"`
 	DocumentType    string     `json:"document_type" gorm:"not null"`
 	DocumentURL     string     `json:"document_url" gorm:"not null"`
 	Status          string     `json:"status" gorm:"default:'pending'"`
 	RejectionReason string     `json:"rejection_reason"`
 	VerifiedAt      *time.Time `json:"verified_at"`
-	VerifiedBy      *uuid.UUID `json:"verified_by"`
+	VerifiedBy      *uuid.UUID `json:"verified_by" gorm:"type:uuid"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt       time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 }

@@ -3,14 +3,14 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:14-alpine
+    image: postgis/postgis:14-3.4-alpine
     container_name: zomato-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: zomato_clone
+      POSTGRES_PASSWORD: Raj@76330Raj
+      POSTGRES_DB: cravex
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -66,7 +66,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       JWT_SECRET: your-super-secret-jwt-key
       OTP_SECRET: your-otp-secret-key
       REDIS_URL: redis://redis:6379
@@ -78,6 +78,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # Restaurant Service
   restaurant-service:
@@ -88,7 +89,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       REDIS_URL: redis://redis:6379
       KAFKA_URL: kafka:29092
       PORT: 8002
@@ -98,6 +99,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # Order Service
   order-service:
@@ -108,7 +110,7 @@ services:
     ports:
       - "8003:8003"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       REDIS_URL: redis://redis:6379
       KAFKA_URL: kafka:29092
       PORT: 8003
@@ -118,6 +120,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # Rider Service
   rider-service:
@@ -128,7 +131,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       REDIS_URL: redis://redis:6379
       KAFKA_URL: kafka:29092
       PORT: 8004
@@ -138,6 +141,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # Payment Service
   payment-service:
@@ -148,7 +152,7 @@ services:
     ports:
       - "8005:8005"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       REDIS_URL: redis://redis:6379
       KAFKA_URL: kafka:29092
       PORT: 8005
@@ -160,6 +164,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # Notification Service
   notification-service:
@@ -170,7 +175,7 @@ services:
     ports:
       - "8006:8006"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/zomato_clone?sslmode=disable
+      DATABASE_URL: postgres://postgres:Raj@76330Raj@postgres:5432/cravex?sslmode=disable
       REDIS_URL: redis://redis:6379
       KAFKA_URL: kafka:29092
       PORT: 8006
@@ -182,6 +187,7 @@ services:
       - kafka
     networks:
       - zomato-network
+    restart: on-failure
 
   # API Gateway
   api-gateway:
@@ -194,12 +200,13 @@ services:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
       KONG_PG_USER: postgres
-      KONG_PG_PASSWORD: postgres
+      KONG_PG_PASSWORD: Raj@76330Raj
       KONG_PG_DATABASE: kong
     depends_on:
       - postgres
     networks:
       - zomato-network
+    restart: on-failure
 
 volumes:
   postgres_data:

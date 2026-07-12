@@ -160,7 +160,7 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.orderService.UpdateOrderStatus(id, req.Status, req.Notes, userUUID); err != nil {
+	if err := h.orderService.UpdateOrderStatus(id, req.Status, req.Notes, req.EventID, userUUID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

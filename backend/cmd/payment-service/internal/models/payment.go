@@ -9,8 +9,8 @@ import (
 
 type Payment struct {
 	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	OrderID         uuid.UUID  `json:"order_id" gorm:"not null;index"`
-	UserID          uuid.UUID  `json:"user_id" gorm:"not null;index"`
+	OrderID         uuid.UUID  `json:"order_id" gorm:"type:uuid;not null;index"`
+	UserID          uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
 	Amount          float64    `json:"amount" gorm:"not null"`
 	PaymentMethod   string     `json:"payment_method" gorm:"not null"`
 	Status          string     `json:"status" gorm:"default:'pending'"`
@@ -27,7 +27,7 @@ type Payment struct {
 
 type Wallet struct {
 	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID    uuid.UUID `json:"user_id" gorm:"uniqueIndex;not null"`
+	UserID    uuid.UUID `json:"user_id" gorm:"type:uuid;uniqueIndex;not null"`
 	Balance   float64   `json:"balance" gorm:"default:0.00"`
 	Currency  string    `json:"currency" gorm:"default:'INR'"`
 	IsActive  bool      `json:"is_active" gorm:"default:true"`
@@ -37,7 +37,7 @@ type Wallet struct {
 
 type WalletTransaction struct {
 	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	WalletID    uuid.UUID  `json:"wallet_id" gorm:"not null;index"`
+	WalletID    uuid.UUID  `json:"wallet_id" gorm:"type:uuid;not null;index"`
 	Type        string     `json:"type" gorm:"not null"` // credit, debit
 	Amount      float64    `json:"amount" gorm:"not null"`
 	Balance     float64    `json:"balance" gorm:"not null"`

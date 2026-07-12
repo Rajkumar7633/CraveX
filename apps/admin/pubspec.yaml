@@ -19,6 +19,8 @@ dependencies:
   go_router: ^13.0.0
   fl_chart: ^0.66.0
   intl: ^0.18.1
+  flutter_map: ^8.0.0
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

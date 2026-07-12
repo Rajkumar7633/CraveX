@@ -1,6 +1,10 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import 'package:theme/app_theme.dart';
+import 'package:widgets/widgets.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -15,6 +19,65 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final orders = MockData.restaurantOrders;
+
+    final markers = <Marker>[];
+    final polylines = <Polyline>[];
+
+    for (var o in orders) {
+      final restaurant = MockData.restaurants.firstWhere(
+        (r) => r.id == o.restaurantId,
+        orElse: () => MockData.restaurants.first,
+      );
+      final restLatLng = LatLng(restaurant.latitude, restaurant.longitude);
+      final custLatLng = LatLng(o.deliveryAddress.latitude, o.deliveryAddress.longitude);
+
+      if (!markers.any((m) => m.point.latitude == restLatLng.latitude && m.point.longitude == restLatLng.longitude)) {
+        markers.add(
+          Marker(
+            point: restLatLng,
+            width: 35,
+            height: 35,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))],
+                border: Border.all(color: AppTheme.primaryRed, width: 2),
+              ),
+              child: const Icon(Icons.restaurant, color: AppTheme.primaryRed, size: 16),
+            ),
+          ),
+        );
+      }
+
+      markers.add(
+        Marker(
+          point: custLatLng,
+          width: 35,
+          height: 35,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))],
+              border: Border.all(color: Colors.blue, width: 2),
+            ),
+            child: const Icon(Icons.person_pin_circle, color: Colors.blue, size: 16),
+          ),
+        ),
+      );
+
+      polylines.add(
+        Polyline(
+          points: [restLatLng, custLatLng],
+          color: AppTheme.primaryRed.withValues(alpha: 0.6),
+          strokeWidth: 3.0,
+          borderStrokeWidth: 1.5,
+          borderColor: Colors.white,
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Order Monitoring'),
@@ -37,16 +100,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           Expanded(
             flex: 2,
             child: Container(
-              color: Colors.grey[200],
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.map, size: 64, color: Colors.grey[400]),
-                    Text('Live Order Map', style: TextStyle(color: Colors.grey[600], fontSize: 18)),
-                    Text('${orders.length} active orders in Bangalore', style: TextStyle(color: Colors.grey[500])),
-                  ],
-                ),
+              padding: const EdgeInsets.all(16),
+              child: OsmMapWidget(
+                markers: markers,
+                polylines: polylines,
+                zoom: 12.0,
               ),
             ),
           ),

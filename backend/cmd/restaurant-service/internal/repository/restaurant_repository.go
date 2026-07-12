@@ -67,10 +67,11 @@ func (r *restaurantRepository) Delete(id uuid.UUID) error {
 }
 
 func (r *restaurantRepository) FindNearby(latitude, longitude float64, radiusKm float64) ([]*models.Restaurant, error) {
-	// Simple distance calculation (in production, use PostGIS)
 	var restaurants []*models.Restaurant
-	// This is a simplified query - in production use PostGIS ST_DWithin
-	err := r.db.Where("is_active = ? AND is_available = ?", true, true).Find(&restaurants).Error
+	radiusMeters := radiusKm * 1000.0
+	err := r.db.Where("is_active = ? AND is_available = ?", true, true).
+		Where("ST_DWithin(delivery_zone::geography, ST_SetSRID(ST_Point(?, ?), 4326)::geography, ?)", longitude, latitude, radiusMeters).
+		Find(&restaurants).Error
 	if err != nil {
 		return nil, err
 	}

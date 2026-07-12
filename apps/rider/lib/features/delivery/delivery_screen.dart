@@ -1,7 +1,11 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:theme/app_theme.dart';
+import 'package:widgets/widgets.dart';
 
 class DeliveryScreen extends StatefulWidget {
   final String orderId;
@@ -24,6 +28,83 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final order = MockData.restaurantOrders.firstWhere(
+      (o) => o.id == widget.orderId,
+      orElse: () => MockData.restaurantOrders.first,
+    );
+    final restaurant = MockData.restaurants.firstWhere(
+      (r) => r.id == order.restaurantId,
+      orElse: () => MockData.restaurants.first,
+    );
+    final restLatLng = LatLng(restaurant.latitude, restaurant.longitude);
+    final custLatLng = LatLng(order.deliveryAddress.latitude, order.deliveryAddress.longitude);
+
+    LatLng riderLatLng;
+    if (_step == 0) {
+      riderLatLng = LatLng(restLatLng.latitude - 0.003, restLatLng.longitude - 0.002);
+    } else if (_step == 1 || _step == 2) {
+      riderLatLng = restLatLng;
+    } else if (_step == 3) {
+      riderLatLng = LatLng((restLatLng.latitude + custLatLng.latitude) / 2, (restLatLng.longitude + custLatLng.longitude) / 2);
+    } else {
+      riderLatLng = custLatLng;
+    }
+
+    final markers = [
+      Marker(
+        point: restLatLng,
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            border: Border.all(color: AppTheme.primaryRed, width: 2),
+          ),
+          child: const Icon(Icons.restaurant, color: AppTheme.primaryRed, size: 20),
+        ),
+      ),
+      Marker(
+        point: custLatLng,
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            border: Border.all(color: Colors.blue, width: 2),
+          ),
+          child: const Icon(Icons.person_pin_circle, color: Colors.blue, size: 20),
+        ),
+      ),
+      Marker(
+        point: riderLatLng,
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            border: Border.all(color: Colors.green, width: 2),
+          ),
+          child: const Icon(Icons.delivery_dining, color: Colors.green, size: 20),
+        ),
+      ),
+    ];
+
+    final polylines = [
+      Polyline(
+        points: [restLatLng, custLatLng],
+        color: AppTheme.primaryRed,
+        strokeWidth: 4.0,
+        borderStrokeWidth: 2.0,
+        borderColor: Colors.white,
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(title: Text('Delivery #${widget.orderId.substring(widget.orderId.length - 6)}')),
       body: Column(
@@ -34,16 +115,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 Container(
-                  height: 200,
-                  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.navigation, size: 48),
-                      Text('Turn-by-turn navigation'),
-                      Text('Google Maps integration', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  )),
+                  height: 250,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: OsmMapWidget(
+                    markers: markers,
+                    polylines: polylines,
+                    zoom: 14.5,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 ..._steps.asMap().entries.map((e) {

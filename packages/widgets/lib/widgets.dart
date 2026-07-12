@@ -7,3 +7,5 @@ export 'order_status_timeline.dart';
 export 'stat_card.dart';
 export 'veg_indicator.dart';
 export 'loading_overlay.dart';
+export 'osm_map_widget.dart';
+

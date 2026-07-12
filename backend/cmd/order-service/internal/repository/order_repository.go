@@ -14,6 +14,7 @@ type OrderRepository interface {
 	FindByUserID(userID uuid.UUID) ([]*models.Order, error)
 	FindByRestaurantID(restaurantID uuid.UUID) ([]*models.Order, error)
 	FindByRiderID(riderID uuid.UUID) ([]*models.Order, error)
+	FindActive() ([]*models.Order, error)
 	Update(order *models.Order) error
 	UpdateStatus(id uuid.UUID, status string) error
 	Delete(id uuid.UUID) error
@@ -70,6 +71,15 @@ func (r *orderRepository) FindByRestaurantID(restaurantID uuid.UUID) ([]*models.
 func (r *orderRepository) FindByRiderID(riderID uuid.UUID) ([]*models.Order, error) {
 	var orders []*models.Order
 	err := r.db.Preload("OrderItems").Where("rider_id = ?", riderID).Order("created_at DESC").Find(&orders).Error
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (r *orderRepository) FindActive() ([]*models.Order, error) {
+	var orders []*models.Order
+	err := r.db.Preload("OrderItems").Where("status NOT IN (?, ?)", "delivered", "cancelled").Find(&orders).Error
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +147,7 @@ func (r *orderItemRepository) Delete(id uuid.UUID) error {
 type OrderStatusHistoryRepository interface {
 	Create(history *models.OrderStatusHistory) error
 	FindByOrderID(orderID uuid.UUID) ([]*models.OrderStatusHistory, error)
+	FindByEventID(eventID string) (*models.OrderStatusHistory, error)
 }
 
 type orderStatusHistoryRepository struct {
@@ -158,6 +169,15 @@ func (r *orderStatusHistoryRepository) FindByOrderID(orderID uuid.UUID) ([]*mode
 		return nil, err
 	}
 	return history, nil
+}
+
+func (r *orderStatusHistoryRepository) FindByEventID(eventID string) (*models.OrderStatusHistory, error) {
+	var history models.OrderStatusHistory
+	err := r.db.Where("event_id = ?", eventID).First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
 }
 
 func InitDB(databaseURL string) (*gorm.DB, error) {

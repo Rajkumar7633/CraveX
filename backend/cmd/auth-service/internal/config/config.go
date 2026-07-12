@@ -18,7 +18,7 @@ func Load() *Config {
 	godotenv.Load()
 
 	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://user:password@localhost:5432/zomato_clone?sslmode=disable"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:Raj@76330Raj@localhost:5432/cravex?sslmode=disable"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key"),
 		OTPSecret:   getEnv("OTP_SECRET", "your-otp-secret"),
 		RedisURL:    getEnv("REDIS_URL", "localhost:6379"),

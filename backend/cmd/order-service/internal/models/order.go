@@ -10,10 +10,10 @@ import (
 type Order struct {
 	ID                    uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	OrderNumber           string     `json:"order_number" gorm:"uniqueIndex;not null"`
-	UserID                uuid.UUID  `json:"user_id" gorm:"not null;index"`
-	RestaurantID          uuid.UUID  `json:"restaurant_id" gorm:"not null;index"`
-	RiderID               *uuid.UUID `json:"rider_id" gorm:"index"`
-	DeliveryAddressID     uuid.UUID  `json:"delivery_address_id" gorm:"not null"`
+	UserID                uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
+	RestaurantID          uuid.UUID  `json:"restaurant_id" gorm:"type:uuid;not null;index"`
+	RiderID               *uuid.UUID `json:"rider_id" gorm:"type:uuid;index"`
+	DeliveryAddressID     uuid.UUID  `json:"delivery_address_id" gorm:"type:uuid;not null"`
 	Status                string     `json:"status" gorm:"default:'pending'"`
 	Subtotal              float64    `json:"subtotal" gorm:"not null"`
 	DeliveryFee           float64    `json:"delivery_fee" gorm:"not null"`
@@ -32,16 +32,17 @@ type Order struct {
 	EstimatedDeliveryTime *time.Time `json:"estimated_delivery_time"`
 	ActualDeliveryTime    *time.Time `json:"actual_delivery_time"`
 	CancellationReason    string     `json:"cancellation_reason"`
-	CancelledBy           *uuid.UUID `json:"cancelled_by"`
+	CancelledBy           *uuid.UUID `json:"cancelled_by" gorm:"type:uuid"`
 	CancelledAt           *time.Time `json:"cancelled_at"`
-	CreatedAt             time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt             time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+	CreatedAt             time.Time   `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt             time.Time   `json:"updated_at" gorm:"autoUpdateTime"`
+	OrderItems            []OrderItem `json:"order_items" gorm:"foreignKey:OrderID"`
 }
 
 type OrderItem struct {
 	ID                  uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	OrderID             uuid.UUID `json:"order_id" gorm:"not null;index"`
-	MenuItemID          uuid.UUID `json:"menu_item_id" gorm:"not null;index"`
+	OrderID             uuid.UUID `json:"order_id" gorm:"type:uuid;not null;index"`
+	MenuItemID          uuid.UUID `json:"menu_item_id" gorm:"type:uuid;not null;index"`
 	Quantity            int       `json:"quantity" gorm:"not null"`
 	UnitPrice           float64   `json:"unit_price" gorm:"not null"`
 	Customizations      string    `json:"customizations" gorm:"type:jsonb"`
@@ -51,10 +52,11 @@ type OrderItem struct {
 
 type OrderStatusHistory struct {
 	ID        uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	OrderID   uuid.UUID  `json:"order_id" gorm:"not null;index"`
+	OrderID   uuid.UUID  `json:"order_id" gorm:"type:uuid;not null;index"`
 	Status    string     `json:"status" gorm:"not null"`
 	Notes     string     `json:"notes"`
-	UpdatedBy *uuid.UUID `json:"updated_by"`
+	EventID   string     `json:"event_id" gorm:"type:varchar(255);unique"`
+	UpdatedBy *uuid.UUID `json:"updated_by" gorm:"type:uuid"`
 	CreatedAt time.Time  `json:"created_at" gorm:"autoCreateTime"`
 }
 
@@ -78,8 +80,9 @@ type OrderItemRequest struct {
 }
 
 type UpdateOrderStatusRequest struct {
-	Status string `json:"status" binding:"required"`
-	Notes  string `json:"notes"`
+	Status  string `json:"status" binding:"required"`
+	Notes   string `json:"notes"`
+	EventID string `json:"event_id" binding:"required"`
 }
 
 type CancelOrderRequest struct {

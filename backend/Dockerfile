@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for CraveX Backend Services
 
 # Stage 1: Build
-FROM golang:1.21-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -16,16 +16,16 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/auth-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/restaurant-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/order-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/rider-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/payment-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/notification-service
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/routing-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/auth-service/main ./cmd/auth-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/restaurant-service/main ./cmd/restaurant-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/order-service/main ./cmd/order-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/rider-service/main ./cmd/rider-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/payment-service/main ./cmd/payment-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/notification-service/main ./cmd/notification-service
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./cmd/routing-service/main ./cmd/routing-service
 
 # Stage 2: Auth Service
-FROM alpine:latest
+FROM alpine:latest AS auth-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -38,7 +38,7 @@ EXPOSE 8001
 CMD ["./main"]
 
 # Stage 3: Restaurant Service
-FROM alpine:latest
+FROM alpine:latest AS restaurant-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -51,7 +51,7 @@ EXPOSE 8002
 CMD ["./main"]
 
 # Stage 4: Order Service
-FROM alpine:latest
+FROM alpine:latest AS order-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -64,7 +64,7 @@ EXPOSE 8003
 CMD ["./main"]
 
 # Stage 5: Rider Service
-FROM alpine:latest
+FROM alpine:latest AS rider-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -77,7 +77,7 @@ EXPOSE 8004
 CMD ["./main"]
 
 # Stage 6: Payment Service
-FROM alpine:latest
+FROM alpine:latest AS payment-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -90,7 +90,7 @@ EXPOSE 8005
 CMD ["./main"]
 
 # Stage 7: Notification Service
-FROM alpine:latest
+FROM alpine:latest AS notification-service
 
 RUN apk --no-cache add ca-certificates
 
@@ -103,7 +103,7 @@ EXPOSE 8006
 CMD ["./main"]
 
 # Stage 8: Routing Service
-FROM alpine:latest
+FROM alpine:latest AS routing-service
 
 RUN apk --no-cache add ca-certificates
 

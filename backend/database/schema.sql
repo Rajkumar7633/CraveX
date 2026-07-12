@@ -1,6 +1,9 @@
 -- Zomato Clone Database Schema
 -- PostgreSQL 14+
 
+-- Create Kong Database for API Gateway
+CREATE DATABASE kong;
+
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "postgis"; -- For geospatial queries
@@ -115,12 +118,14 @@ CREATE TABLE restaurants (
     pan_number VARCHAR(20),
     commission_rate DECIMAL(5, 2) DEFAULT 15.00,
     operating_hours JSONB, -- Store day-wise hours
+    delivery_zone GEOMETRY(Polygon, 4326), -- PostGIS delivery zone polygon
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_restaurants_user ON restaurants(user_id);
 CREATE INDEX idx_restaurants_location ON restaurants(latitude, longitude);
+CREATE INDEX idx_restaurants_zone ON restaurants USING GIST(delivery_zone);
 CREATE INDEX idx_restaurants_cuisine ON restaurants USING GIN(cuisine_types);
 CREATE INDEX idx_restaurants_slug ON restaurants(slug);
 
@@ -179,6 +184,7 @@ CREATE TABLE menu_items (
 CREATE INDEX idx_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE INDEX idx_menu_items_category ON menu_items(category_id);
 CREATE INDEX idx_menu_items_veg ON menu_items(is_vegetarian);
+CREATE INDEX idx_menu_item_restaurant_available ON menu_items(restaurant_id) WHERE is_available = true;
 
 CREATE TABLE item_variants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -233,9 +239,11 @@ CREATE TABLE orders (
 );
 
 CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_order_customer_created ON orders(user_id, created_at DESC);
 CREATE INDEX idx_orders_restaurant ON orders(restaurant_id);
 CREATE INDEX idx_orders_rider ON orders(rider_id);
 CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_order_status_restaurant ON orders(restaurant_id, status) WHERE status NOT IN ('delivered','cancelled');
 CREATE INDEX idx_orders_number ON orders(order_number);
 
 CREATE TABLE order_items (
@@ -284,12 +292,14 @@ CREATE TABLE riders (
     zone_id VARCHAR(50),
     is_verified BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
+    location GEOMETRY(Point, 4326), -- PostGIS location point
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_riders_user ON riders(user_id);
 CREATE INDEX idx_riders_location ON riders(current_latitude, current_longitude);
+CREATE INDEX idx_riders_geom ON riders USING GIST(location);
 CREATE INDEX idx_riders_online ON riders(is_online, is_available);
 
 CREATE TABLE rider_documents (
@@ -564,3 +574,45 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_menu_item_orders_trigger AFTER INSERT ON order_items
     FOR EACH ROW EXECUTE FUNCTION update_menu_item_orders();
+
+-- Sync rider Point geography with decimal lat/long coordinates
+CREATE OR REPLACE FUNCTION sync_rider_location_geom()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.current_latitude IS NOT NULL AND NEW.current_longitude IS NOT NULL THEN
+        NEW.location := ST_SetSRID(ST_Point(NEW.current_longitude, NEW.current_latitude), 4326);
+    ELSE
+        NEW.location := NULL;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sync_rider_location_geom_trigger
+BEFORE INSERT OR UPDATE ON riders
+FOR EACH ROW EXECUTE FUNCTION sync_rider_location_geom();
+
+-- Default restaurant delivery zone polygon (5km bounding square buffer) on creation
+CREATE OR REPLACE FUNCTION default_restaurant_delivery_zone()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.delivery_zone IS NULL AND NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
+        -- Construct a simple bounding box polygon of roughly 5km radius (approx 0.045 degrees in lat/lng)
+        NEW.delivery_zone := ST_SetSRID(
+            ST_MakeEnvelope(
+                NEW.longitude - 0.045,
+                NEW.latitude - 0.045,
+                NEW.longitude + 0.045,
+                NEW.latitude + 0.045
+            ),
+            4326
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER default_restaurant_delivery_zone_trigger
+BEFORE INSERT OR UPDATE ON restaurants
+FOR EACH ROW EXECUTE FUNCTION default_restaurant_delivery_zone();
+

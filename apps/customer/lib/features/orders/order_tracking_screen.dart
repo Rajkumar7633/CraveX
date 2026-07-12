@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import 'package:theme/app_theme.dart';
 import 'package:widgets/widgets.dart';
 
@@ -62,6 +65,87 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final eta = _order.estimatedDeliveryTime.difference(DateTime.now()).inMinutes;
+    final restaurant = MockData.restaurants.firstWhere(
+      (r) => r.id == _order.restaurantId,
+      orElse: () => MockData.restaurants.first,
+    );
+    final restLatLng = LatLng(restaurant.latitude, restaurant.longitude);
+    final custLatLng = LatLng(_order.deliveryAddress.latitude, _order.deliveryAddress.longitude);
+
+    LatLng? riderLatLng;
+    if (_statusIndex >= 3) {
+      double ratio = 0.0;
+      if (_statusIndex == 3) ratio = 0.3;
+      if (_statusIndex == 4) ratio = 0.75;
+      if (_statusIndex == 5) ratio = 1.0;
+
+      final lat = restLatLng.latitude + (custLatLng.latitude - restLatLng.latitude) * ratio;
+      final lng = restLatLng.longitude + (custLatLng.longitude - restLatLng.longitude) * ratio;
+      riderLatLng = LatLng(lat, lng);
+    }
+
+    final markers = [
+      Marker(
+        point: restLatLng,
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+            ],
+            border: Border.all(color: AppTheme.primaryRed, width: 2),
+          ),
+          child: const Icon(Icons.restaurant, color: AppTheme.primaryRed, size: 20),
+        ),
+      ),
+      Marker(
+        point: custLatLng,
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+            ],
+            border: Border.all(color: Colors.blue, width: 2),
+          ),
+          child: const Icon(Icons.person_pin_circle, color: Colors.blue, size: 20),
+        ),
+      ),
+      if (riderLatLng != null)
+        Marker(
+          point: riderLatLng,
+          width: 40,
+          height: 40,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+              ],
+              border: Border.all(color: Colors.green, width: 2),
+            ),
+            child: const Icon(Icons.delivery_dining, color: Colors.green, size: 20),
+          ),
+        ),
+    ];
+
+    final polylines = [
+      Polyline(
+        points: [restLatLng, custLatLng],
+        color: AppTheme.primaryRed,
+        strokeWidth: 4.0,
+        borderStrokeWidth: 2.0,
+        borderColor: Colors.white,
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(title: const Text('Track Order')),
       body: ListView(
@@ -90,20 +174,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ),
           const SizedBox(height: 16),
           Container(
-            height: 200,
+            height: 250,
             decoration: BoxDecoration(
-              color: Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.map, size: 48, color: Colors.grey),
-                  Text('Live map tracking'),
-                  Text('(Google Maps SDK integration)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              ),
+            child: OsmMapWidget(
+              markers: markers,
+              polylines: polylines,
+              zoom: 14.5,
             ),
           ),
           const SizedBox(height: 24),

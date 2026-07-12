@@ -9,7 +9,7 @@ import (
 
 type Rider struct {
 	ID                uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID            uuid.UUID  `json:"user_id" gorm:"not null;index"`
+	UserID            uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
 	VehicleType       string    `json:"vehicle_type" gorm:"not null"`
 	VehicleNumber     string    `json:"vehicle_number" gorm:"not null"`
 	VehicleModel      string    `json:"vehicle_model"`
@@ -31,22 +31,22 @@ type Rider struct {
 
 type RiderDocument struct {
 	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	RiderID         uuid.UUID  `json:"rider_id" gorm:"not null;index"`
+	RiderID         uuid.UUID  `json:"rider_id" gorm:"type:uuid;not null;index"`
 	DocumentType    string     `json:"document_type" gorm:"not null"`
 	DocumentURL     string     `json:"document_url" gorm:"not null"`
 	ExpiryDate      *time.Time `json:"expiry_date"`
 	Status          string     `json:"status" gorm:"default:'pending'"`
 	RejectionReason string     `json:"rejection_reason"`
 	VerifiedAt      *time.Time `json:"verified_at"`
-	VerifiedBy      *uuid.UUID `json:"verified_by"`
+	VerifiedBy      *uuid.UUID `json:"verified_by" gorm:"type:uuid"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt       time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 type RiderEarning struct {
 	ID           uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	RiderID      uuid.UUID  `json:"rider_id" gorm:"not null;index"`
-	OrderID      uuid.UUID  `json:"order_id" gorm:"not null;index"`
+	RiderID      uuid.UUID  `json:"rider_id" gorm:"type:uuid;not null;index"`
+	OrderID      uuid.UUID  `json:"order_id" gorm:"type:uuid;not null;index"`
 	DeliveryFee  float64    `json:"delivery_fee" gorm:"not null"`
 	TipAmount    float64    `json:"tip_amount" gorm:"default:0.00"`
 	BonusAmount  float64    `json:"bonus_amount" gorm:"default:0.00"`

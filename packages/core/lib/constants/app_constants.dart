@@ -1,10 +1,10 @@
 class AppConstants {
   static const String appName = 'Zomato Clone';
-  static const String baseUrl = 'http://localhost:8080/api/v1';
-  static const String restaurantBaseUrl = 'http://localhost:8081';
-  static const String orderBaseUrl = 'http://localhost:8082';
-  static const String paymentBaseUrl = 'http://localhost:8083';
-  static const String riderBaseUrl = 'http://localhost:8084';
+  static const String baseUrl = 'http://localhost:8001';
+  static const String restaurantBaseUrl = 'http://localhost:8002';
+  static const String orderBaseUrl = 'http://localhost:8003';
+  static const String paymentBaseUrl = 'http://localhost:8005';
+  static const String riderBaseUrl = 'http://localhost:8004';
 
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;
