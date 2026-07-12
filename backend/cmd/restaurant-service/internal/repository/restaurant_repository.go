@@ -17,6 +17,7 @@ type RestaurantRepository interface {
 	FindNearby(latitude, longitude float64, radiusKm float64) ([]*models.Restaurant, error)
 	FindByCuisine(cuisine string) ([]*models.Restaurant, error)
 	Search(query string) ([]*models.Restaurant, error)
+	FindAll() ([]*models.Restaurant, error)
 }
 
 type restaurantRepository struct {
@@ -90,6 +91,15 @@ func (r *restaurantRepository) FindByCuisine(cuisine string) ([]*models.Restaura
 func (r *restaurantRepository) Search(query string) ([]*models.Restaurant, error) {
 	var restaurants []*models.Restaurant
 	err := r.db.Where("name ILIKE ? OR description ILIKE ?", "%"+query+"%", "%"+query+"%").Find(&restaurants).Error
+	if err != nil {
+		return nil, err
+	}
+	return restaurants, nil
+}
+
+func (r *restaurantRepository) FindAll() ([]*models.Restaurant, error) {
+	var restaurants []*models.Restaurant
+	err := r.db.Where("is_active = ?", true).Find(&restaurants).Error
 	if err != nil {
 		return nil, err
 	}

@@ -56,37 +56,114 @@ class Order extends Equatable {
     this.statusHistory = const [],
   });
 
-  Order copyWith({String? status, String? riderId, String? riderName}) => Order(
-        id: id,
-        userId: userId,
-        restaurantId: restaurantId,
-        restaurantName: restaurantName,
-        items: items,
-        subtotal: subtotal,
-        deliveryFee: deliveryFee,
-        tax: tax,
-        platformFee: platformFee,
-        packagingCharge: packagingCharge,
-        discount: discount,
-        tip: tip,
-        total: total,
-        status: status ?? this.status,
-        paymentMethod: paymentMethod,
-        isPaid: isPaid,
-        deliveryAddress: deliveryAddress,
-        riderId: riderId ?? this.riderId,
-        riderName: riderName ?? this.riderName,
-        riderPhone: riderPhone,
-        specialInstructions: specialInstructions,
-        couponCode: couponCode,
-        estimatedDeliveryTime: estimatedDeliveryTime,
-        createdAt: createdAt,
-        statusHistory: statusHistory,
+  factory Order.fromJson(Map<String, dynamic> json) {
+    Address parseAddress(dynamic a) {
+      if (a == null) return const Address(id: '', label: '', addressLine1: '', city: '', state: '', pincode: '', latitude: 0, longitude: 0);
+      final m = a as Map<String, dynamic>;
+      return Address(
+        id: m['id'] as String? ?? '',
+        label: m['label'] as String? ?? 'Home',
+        addressLine1: m['addressLine1'] as String? ?? m['address'] as String? ?? '',
+        city: m['city'] as String? ?? '',
+        state: m['state'] as String? ?? '',
+        pincode: m['pincode'] as String? ?? '',
+        latitude: (m['latitude'] as num?)?.toDouble() ?? 0,
+        longitude: (m['longitude'] as num?)?.toDouble() ?? 0,
       );
+    }
+
+    return Order(
+      id: json['id'] as String,
+      userId: json['userId'] as String? ?? '',
+      restaurantId: json['restaurantId'] as String? ?? '',
+      restaurantName: json['restaurantName'] as String? ?? 'Restaurant',
+      items: (json['items'] as List? ?? []).map((i) => OrderLineItem.fromJson(i as Map<String, dynamic>)).toList(),
+      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
+      deliveryFee: (json['deliveryFee'] as num?)?.toDouble() ?? 0,
+      tax: (json['tax'] as num?)?.toDouble() ?? 0,
+      platformFee: (json['platformFee'] as num?)?.toDouble() ?? 5,
+      packagingCharge: (json['packagingCharge'] as num?)?.toDouble() ?? 10,
+      discount: (json['discount'] as num?)?.toDouble() ?? 0,
+      tip: (json['tip'] as num?)?.toDouble() ?? 0,
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+      status: json['status'] as String? ?? 'placed',
+      paymentMethod: json['paymentMethod'] as String? ?? 'cod',
+      isPaid: json['isPaid'] as bool? ?? false,
+      deliveryAddress: parseAddress(json['deliveryAddress']),
+      riderId: json['riderId'] as String?,
+      riderName: json['riderName'] as String?,
+      riderPhone: json['riderPhone'] as String?,
+      specialInstructions: json['specialInstructions'] as String?,
+      couponCode: json['couponCode'] as String?,
+      estimatedDeliveryTime: json['estimatedDeliveryTime'] != null
+          ? DateTime.tryParse(json['estimatedDeliveryTime'] as String) ?? DateTime.now().add(const Duration(minutes: 30))
+          : DateTime.now().add(const Duration(minutes: 30)),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
+  Order copyWith({
+    String? id,
+    String? userId,
+    String? restaurantId,
+    String? restaurantName,
+    List<OrderLineItem>? items,
+    double? subtotal,
+    double? deliveryFee,
+    double? tax,
+    double? platformFee,
+    double? packagingCharge,
+    double? discount,
+    double? tip,
+    double? total,
+    String? status,
+    String? paymentMethod,
+    bool? isPaid,
+    Address? deliveryAddress,
+    String? riderId,
+    String? riderName,
+    String? riderPhone,
+    String? specialInstructions,
+    String? couponCode,
+    DateTime? estimatedDeliveryTime,
+    DateTime? createdAt,
+    List<OrderStatusStep>? statusHistory,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      restaurantId: restaurantId ?? this.restaurantId,
+      restaurantName: restaurantName ?? this.restaurantName,
+      items: items ?? this.items,
+      subtotal: subtotal ?? this.subtotal,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      tax: tax ?? this.tax,
+      platformFee: platformFee ?? this.platformFee,
+      packagingCharge: packagingCharge ?? this.packagingCharge,
+      discount: discount ?? this.discount,
+      tip: tip ?? this.tip,
+      total: total ?? this.total,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      isPaid: isPaid ?? this.isPaid,
+      deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      riderId: riderId ?? this.riderId,
+      riderName: riderName ?? this.riderName,
+      riderPhone: riderPhone ?? this.riderPhone,
+      specialInstructions: specialInstructions ?? this.specialInstructions,
+      couponCode: couponCode ?? this.couponCode,
+      estimatedDeliveryTime: estimatedDeliveryTime ?? this.estimatedDeliveryTime,
+      createdAt: createdAt ?? this.createdAt,
+      statusHistory: statusHistory ?? this.statusHistory,
+    );
+  }
 
   @override
   List<Object?> get props => [id, status, total];
 }
+
 
 class OrderLineItem extends Equatable {
   final String menuItemId;
@@ -106,6 +183,15 @@ class OrderLineItem extends Equatable {
   });
 
   double get lineTotal => price * quantity;
+
+  factory OrderLineItem.fromJson(Map<String, dynamic> json) => OrderLineItem(
+        menuItemId: json['menuItemId'] as String? ?? json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        price: (json['price'] as num?)?.toDouble() ?? 0,
+        quantity: json['quantity'] as int? ?? 1,
+        isVeg: json['isVeg'] as bool? ?? json['veg'] as bool? ?? true,
+        addOns: List<String>.from(json['addOns'] ?? []),
+      );
 
   @override
   List<Object?> get props => [menuItemId, name, quantity];

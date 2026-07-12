@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/zomato-clone/restaurant-service/internal/cache"
 	"github.com/zomato-clone/restaurant-service/internal/models"
 	"github.com/zomato-clone/restaurant-service/internal/repository"
@@ -51,7 +52,7 @@ func (s *restaurantService) CreateRestaurant(userID uuid.UUID, req *models.Creat
 		Name:           req.Name,
 		Slug:           slug,
 		Description:    req.Description,
-		CuisineTypes:   req.CuisineTypes,
+		CuisineTypes:   pq.StringArray(req.CuisineTypes),
 		AddressLine1:   req.AddressLine1,
 		AddressLine2:   req.AddressLine2,
 		Landmark:       req.Landmark,
@@ -102,7 +103,7 @@ func (s *restaurantService) UpdateRestaurant(id uuid.UUID, req *models.UpdateRes
 		restaurant.Description = *req.Description
 	}
 	if req.CuisineTypes != nil {
-		restaurant.CuisineTypes = *req.CuisineTypes
+		restaurant.CuisineTypes = pq.StringArray(*req.CuisineTypes)
 	}
 	if req.CoverImageURL != nil {
 		restaurant.CoverImageURL = *req.CoverImageURL
@@ -149,7 +150,7 @@ func (s *restaurantService) SearchRestaurants(query string, cuisine string, lat,
 	} else if lat != 0 && lng != 0 {
 		restaurants, err = s.restaurantRepo.FindNearby(lat, lng, radiusKm)
 	} else {
-		return nil, errors.New("please provide search criteria")
+		restaurants, err = s.restaurantRepo.FindAll()
 	}
 
 	if err != nil {
@@ -252,7 +253,7 @@ func (s *menuService) CreateMenuItem(restaurantID uuid.UUID, req *models.CreateM
 		SpiceLevel:      req.SpiceLevel,
 		ServingSize:     req.ServingSize,
 		Calories:        req.Calories,
-		Allergens:       req.Allergens,
+		Allergens:       pq.StringArray(req.Allergens),
 		Customizations:  req.Customizations,
 		Rating:          0.00,
 		TotalOrders:     0,
@@ -340,7 +341,7 @@ func (s *menuService) UpdateMenuItem(id uuid.UUID, req *models.UpdateMenuItemReq
 		item.Calories = req.Calories
 	}
 	if len(req.Allergens) > 0 {
-		item.Allergens = req.Allergens
+		item.Allergens = pq.StringArray(req.Allergens)
 	}
 	if req.Customizations != nil {
 		item.Customizations = *req.Customizations

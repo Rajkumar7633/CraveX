@@ -1,10 +1,13 @@
 class AppConstants {
-  static const String appName = 'Zomato Clone';
-  static const String baseUrl = 'http://localhost:8001';
-  static const String restaurantBaseUrl = 'http://localhost:8002';
-  static const String orderBaseUrl = 'http://localhost:8003';
-  static const String paymentBaseUrl = 'http://localhost:8005';
-  static const String riderBaseUrl = 'http://localhost:8004';
+  static const String appName = 'CraveX';
+  // 10.0.2.2 is the Android emulator's alias for the host machine's localhost
+  static const String _host = '10.0.2.2';
+  static const String baseUrl = 'http://$_host:8001';
+  static const String restaurantBaseUrl = 'http://$_host:8002';
+  static const String orderBaseUrl = 'http://$_host:8003';
+  static const String riderBaseUrl = 'http://$_host:8004';
+  static const String paymentBaseUrl = 'http://$_host:8005';
+  static const String notificationBaseUrl = 'http://$_host:8006';
 
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;

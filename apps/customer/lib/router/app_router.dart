@@ -22,6 +22,7 @@ import '../features/profile/wallet_screen.dart';
 import '../features/restaurant/menu_item_detail_screen.dart';
 import '../features/restaurant/restaurant_detail_screen.dart';
 import '../features/search/search_screen.dart';
+import '../features/auth/role_portal_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -60,5 +61,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/help', builder: (_, __) => const HelpSupportScreen()),
     GoRoute(path: '/gold', builder: (_, __) => const GoldMembershipScreen()),
     GoRoute(path: '/payment-methods', builder: (_, __) => const PaymentMethodsScreen()),
+    GoRoute(path: '/role-portal', builder: (_, __) => const RolePortalScreen()),
   ],
 );

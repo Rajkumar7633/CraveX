@@ -51,6 +51,7 @@ func main() {
 	// Public routes
 	public := router.Group("/api/v1/restaurants")
 	{
+		public.GET("/", restaurantHandler.SearchRestaurants)
 		public.GET("/search", restaurantHandler.SearchRestaurants)
 		public.GET("/:id", restaurantHandler.GetRestaurant)
 		public.GET("/:id/menu", restaurantHandler.GetMenuItems)

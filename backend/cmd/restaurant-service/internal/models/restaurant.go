@@ -4,20 +4,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
 type Restaurant struct {
-	ID                uuid.UUID  `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
-	UserID            uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
-	Name              string     `json:"name" gorm:"not null"`
-	Slug              string     `json:"slug" gorm:"uniqueIndex;not null"`
-	Description       string     `json:"description"`
-	CuisineTypes       []string   `json:"cuisine_types" gorm:"type:text[]"`
-	CoverImageURL     string     `json:"cover_image_url"`
-	LogoURL           string     `json:"logo_url"`
-	AddressLine1      string     `json:"address_line1" gorm:"not null"`
-	AddressLine2      string     `json:"address_line2"`
+	ID                uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
+	UserID            uuid.UUID      `json:"user_id" gorm:"type:uuid;not null;index"`
+	Name              string         `json:"name" gorm:"not null"`
+	Slug              string         `json:"slug" gorm:"uniqueIndex;not null"`
+	Description       string         `json:"description"`
+	CuisineTypes      pq.StringArray `json:"cuisine_types" gorm:"type:text[]"`
+	CoverImageURL     string         `json:"cover_image_url"`
+	LogoURL           string         `json:"logo_url"`
+	AddressLine1      string         `json:"address_line1" gorm:"not null"`
+	AddressLine2      string         `json:"address_line2"`
 	Landmark          string     `json:"landmark"`
 	City              string     `json:"city" gorm:"not null"`
 	State             string     `json:"state" gorm:"not null"`
@@ -70,7 +71,7 @@ type MenuItem struct {
 	SpiceLevel       string     `json:"spice_level"`
 	ServingSize      string     `json:"serving_size"`
 	Calories         *int       `json:"calories"`
-	Allergens        []string   `json:"allergens" gorm:"type:text[]"`
+	Allergens        pq.StringArray `json:"allergens" gorm:"type:text[]"`
 	Customizations   string     `json:"customizations" gorm:"type:jsonb"`
 	Rating           float64    `json:"rating" gorm:"default:0.00"`
 	TotalOrders      int        `json:"total_orders" gorm:"default:0"`

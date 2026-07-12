@@ -46,15 +46,23 @@ class MenuItem extends Equatable {
 
   factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
         id: json['id'] as String,
-        categoryId: json['categoryId'] as String,
+        categoryId: json['category_id'] as String? ??
+            json['categoryId'] as String? ??
+            '',
         name: json['name'] as String,
         description: json['description'] as String? ?? '',
         price: (json['price'] as num).toDouble(),
-        imageUrl: json['imageUrl'] as String?,
-        isVeg: json['veg'] as bool? ?? json['isVeg'] as bool? ?? true,
-        isAvailable: json['isAvailable'] as bool? ?? true,
+        imageUrl: json['image_url'] as String? ?? json['imageUrl'] as String?,
+        isVeg: json['is_vegetarian'] as bool? ??
+            json['veg'] as bool? ??
+            json['isVeg'] as bool? ??
+            true,
+        isAvailable:
+            json['is_available'] as bool? ?? json['isAvailable'] as bool? ?? true,
         addOns: List<String>.from(json['addOns'] ?? []),
-        isRecommended: json['isRecommended'] as bool? ?? false,
+        isRecommended: json['is_featured'] as bool? ??
+            json['isRecommended'] as bool? ??
+            false,
         spiceLevel: json['spiceLevel'] as int? ?? 0,
       );
 
