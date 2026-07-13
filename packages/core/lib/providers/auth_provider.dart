@@ -8,20 +8,23 @@ final _authService = AuthService();
 // Auth state
 class AuthState {
   final User? user;
+  final String? userType;
   final bool isLoading;
   final String? error;
   final bool isAuthenticated;
 
   const AuthState({
     this.user,
+    this.userType,
     this.isLoading = false,
     this.error,
     this.isAuthenticated = false,
   });
 
-  AuthState copyWith({User? user, bool? isLoading, String? error, bool? isAuthenticated}) =>
+  AuthState copyWith({User? user, String? userType, bool? isLoading, String? error, bool? isAuthenticated}) =>
       AuthState(
         user: user ?? this.user,
+        userType: userType ?? this.userType,
         isLoading: isLoading ?? this.isLoading,
         error: error,
         isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -44,7 +47,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> sendOtp(String phone) async {
+  Future<bool> sendOtp(String phone, {String? userType}) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
       await _authService.sendOtp(phone);
@@ -56,7 +59,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<User?> verifyOtp(String phone, String otp, {String? referralCode}) async {
+  Future<User?> verifyOtp(String phone, String otp, {String? referralCode, String? userType}) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
       final data = await _authService.verifyOtp(phone, otp, referralCode: referralCode);
@@ -66,7 +69,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         user = await _authService.getMe();
       }
-      state = AuthState(user: user, isAuthenticated: true);
+      state = AuthState(user: user, isAuthenticated: true, userType: userType);
       return user;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));

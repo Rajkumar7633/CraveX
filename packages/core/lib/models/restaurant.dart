@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dart:convert';
 
 class Restaurant extends Equatable {
   final String id;
@@ -73,6 +74,29 @@ class Restaurant extends Equatable {
         hasOffer: json['hasOffer'] as bool? ?? false,
         offerText: json['offerText'] as String?,
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'cuisines': cuisines,
+        'address': address,
+        'latitude': latitude,
+        'longitude': longitude,
+        'rating': rating,
+        'reviewCount': reviewCount,
+        'deliveryTime': deliveryTime,
+        'deliveryFee': deliveryFee,
+        'costForTwo': costForTwo,
+        'isPureVeg': isPureVeg,
+        'isOpen': isOpen,
+        'coverImage': coverImage,
+        'fssaiLicense': fssaiLicense,
+        'openingHours': openingHours,
+        'distanceKm': distanceKm,
+        'hasOffer': hasOffer,
+        'offerText': offerText,
+      };
 
   @override
   List<Object?> get props => [id, name, rating, isOpen];

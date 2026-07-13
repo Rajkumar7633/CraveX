@@ -233,6 +233,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
         if (order.riderName != null) const SizedBox(height: 16),
 
+        // Map view (without Google Maps)
+        if (!isCancelled && !isDelivered) _buildMapView(),
+
+        const SizedBox(height: 16),
+
         // Order details
         _buildOrderDetails(order),
 
@@ -384,6 +389,76 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
+  Widget _buildMapView() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F4E8),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
+      child: Stack(
+        children: [
+          // Simple map representation
+          CustomPaint(
+            size: const Size(double.infinity, 200),
+            painter: _MapPainter(),
+          ),
+          // Restaurant marker
+          Positioned(
+            top: 60,
+            left: 80,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+              ),
+              child: const Icon(Icons.store_rounded, color: Color(0xFFE23744), size: 24),
+            ),
+          ),
+          // Delivery marker
+          Positioned(
+            top: 120,
+            right: 80,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+              ),
+              child: const Icon(Icons.home_rounded, color: Color(0xFF2ECC71), size: 24),
+            ),
+          ),
+          // Rider marker (animated)
+          Positioned(
+            top: 90,
+            left: 150,
+            child: AnimatedContainer(
+              duration: const Duration(seconds: 2),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE23744),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: const Color(0xFFE23744).withOpacity(0.3), blurRadius: 8)],
+                ),
+                child: const Icon(Icons.directions_bike_rounded, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          // Route line
+          CustomPaint(
+            size: const Size(double.infinity, 200),
+            painter: _RoutePainter(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOrderDetails(Order order) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -452,4 +527,45 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       }
     }
   }
+}
+
+class _MapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD4E8D4)
+      ..style = PaintingStyle.fill;
+    
+    // Draw simple map grid
+    for (int i = 0; i < size.width; i += 40) {
+      canvas.drawLine(Offset(i.toDouble(), 0), Offset(i.toDouble(), size.height), paint);
+    }
+    for (int i = 0; i < size.height; i += 40) {
+      canvas.drawLine(Offset(0, i.toDouble()), Offset(size.width, i.toDouble()), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _RoutePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE23744)
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    
+    final path = Path();
+    path.moveTo(100, 80);
+    path.quadraticBezierTo(150, 100, 200, 140);
+    path.lineTo(250, 160);
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

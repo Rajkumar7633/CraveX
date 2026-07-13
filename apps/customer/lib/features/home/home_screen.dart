@@ -7,6 +7,8 @@ import 'package:shimmer/shimmer.dart';
 import '../orders/order_history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
+import 'restaurant_provider.dart';
+import 'location_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:theme/app_theme.dart';
 import 'package:widgets/widgets.dart';
+import '../home/restaurant_provider.dart';
 
 class MenuItemDetailScreen extends ConsumerStatefulWidget {
   final String restaurantId;
@@ -36,8 +37,8 @@ class _MenuItemDetailScreenState extends ConsumerState<MenuItemDetailScreen> {
       price = variant.price;
     }
     
-    if (item.addOns != null) {
-      for (final addOn in item.addOns!) {
+    if (item.addOnObjects != null) {
+      for (final addOn in item.addOnObjects!) {
         if (_selectedAddOns.contains(addOn.name)) {
           price += addOn.price;
         }
@@ -59,8 +60,8 @@ class _MenuItemDetailScreenState extends ConsumerState<MenuItemDetailScreen> {
       price: _totalPrice / _quantity,
       quantity: _quantity,
       isVeg: item.isVeg,
-      variant: _selectedVariant,
-      addOns: _selectedAddOns.toList(),
+      variantName: _selectedVariant,
+      selectedAddOns: _selectedAddOns.toList(),
     ));
     
     context.pop();
@@ -184,11 +185,11 @@ class _MenuItemDetailScreenState extends ConsumerState<MenuItemDetailScreen> {
           ],
           
           // Add-ons
-          if (item.addOns != null && item.addOns!.isNotEmpty) ...[
+          if (item.addOnObjects != null && item.addOnObjects!.isNotEmpty) ...[
             const SizedBox(height: 24),
             const Text('Add-ons', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            ...item.addOns!.map((addOn) => CheckboxListTile(
+            ...item.addOnObjects!.map((addOn) => CheckboxListTile(
               title: Text(addOn.name),
               subtitle: Text('₹${addOn.price.toInt()}'),
               value: _selectedAddOns.contains(addOn.name),

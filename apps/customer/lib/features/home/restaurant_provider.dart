@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:core/core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class RestaurantCache {
   static const String _cacheKey = 'restaurant_list_cache';

@@ -193,6 +193,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
           const SizedBox(height: 16),
 
+          // Address
+          _buildAddressSection(),
+
+          const SizedBox(height: 16),
+
           // Tip
           _buildTipSection(),
 
@@ -224,6 +229,58 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddressSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.location_on_rounded, color: Color(0xFFE23744), size: 18),
+              SizedBox(width: 8),
+              Text('Delivery Address', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => context.push('/address-selection'),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.home_rounded, color: Color(0xFF1C1C1C), size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Home', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        SizedBox(height: 2),
+                        Text('123 Main Street, Bangalore', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

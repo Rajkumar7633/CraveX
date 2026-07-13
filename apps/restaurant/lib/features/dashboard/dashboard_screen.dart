@@ -1,63 +1,130 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:theme/app_theme.dart';
 import 'package:widgets/widgets.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isOpen = true;
   bool _busyMode = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Meghana Foods'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Colors.black),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1C1C1C)),
+        ),
         actions: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _isOpen ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isOpen ? Icons.store_rounded : Icons.storefront_rounded,
+                  size: 16,
+                  color: _isOpen ? const Color(0xFF2ECC71) : const Color(0xFFE23744),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _isOpen ? 'Open' : 'Closed',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _isOpen ? const Color(0xFF2ECC71) : const Color(0xFFE23744),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           Switch(
             value: _isOpen,
             onChanged: (v) => setState(() => _isOpen = v),
-            activeThumbColor: Colors.green,
+            activeColor: const Color(0xFF2ECC71),
           ),
-          Text(_isOpen ? 'Open' : 'Closed', style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
         ],
       ),
       drawer: _drawer(context),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Stats grid
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.5,
+            childAspectRatio: 1.4,
             children: const [
-              StatCard(title: "Today's Orders", value: '24', icon: Icons.receipt),
-              StatCard(title: 'Revenue', value: '₹12,450', icon: Icons.currency_rupee),
-              StatCard(title: 'Avg Rating', value: '4.4', icon: Icons.star),
-              StatCard(title: 'Pending', value: '3', icon: Icons.pending_actions),
+              StatCard(title: "Today's Orders", value: '24', icon: Icons.receipt_long_rounded, color: Color(0xFFE23744)),
+              StatCard(title: 'Revenue', value: '₹12,450', icon: Icons.currency_rupee_rounded, color: Color(0xFF2ECC71)),
+              StatCard(title: 'Avg Rating', value: '4.4', icon: Icons.star_rounded, color: Color(0xFFFFB800)),
+              StatCard(title: 'Pending', value: '3', icon: Icons.pending_actions_rounded, color: Color(0xFFE67E22)),
             ],
           ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('Busy Mode'),
-            subtitle: const Text('Pause new orders temporarily'),
-            value: _busyMode,
-            onChanged: (v) => setState(() => _busyMode = v),
+          const SizedBox(height: 20),
+          
+          // Busy mode
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+            ),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Busy Mode', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              subtitle: const Text('Pause new orders temporarily', style: TextStyle(fontSize: 13, color: Colors.grey)),
+              value: _busyMode,
+              onChanged: (v) => setState(() => _busyMode = v),
+              activeColor: AppTheme.primaryRed,
+            ),
           ),
-          const Text('Live Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...MockData.restaurantOrders.map((o) => _orderCard(o)),
+          
+          const SizedBox(height: 24),
+          
+          // Live orders
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Live Orders',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1C1C1C)),
+              ),
+              TextButton(
+                onPressed: () => context.push('/orders'),
+                child: const Text('View All', style: TextStyle(color: AppTheme.primaryRed, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...MockData.restaurantOrders.take(3).map((o) => _orderCard(o)),
         ],
       ),
     );
@@ -65,39 +132,118 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _orderCard(Order order) {
     Color statusColor = AppTheme.primaryRed;
-    if (order.status == AppOrderStatus.preparing) statusColor = Colors.orange;
-    if (order.status == AppOrderStatus.ready) statusColor = Colors.green;
+    String statusLabel = 'New Order';
+    
+    if (order.status == AppOrderStatus.preparing) {
+      statusColor = const Color(0xFFE67E22);
+      statusLabel = 'Preparing';
+    } else if (order.status == AppOrderStatus.ready) {
+      statusColor = const Color(0xFF2ECC71);
+      statusLabel = 'Ready';
+    } else if (order.status == AppOrderStatus.pickedUp) {
+      statusColor = const Color(0xFF3498DB);
+      statusLabel = 'Picked Up';
+    }
 
-    return Card(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text('#${order.id.substring(order.id.length - 6)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                  child: Text(AppOrderStatus.labels[order.status] ?? order.status, style: TextStyle(color: statusColor, fontSize: 12)),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '#${order.id.substring(order.id.length - 6).toUpperCase()}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                 ),
               ],
             ),
-            Text('${order.items.length} items • ₹${order.total.toInt()}'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.access_time_rounded, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  '10 min ago',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                const SizedBox(width: 16),
+                const Icon(Icons.shopping_bag_rounded, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  '${order.items.length} items',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                const Spacer(),
+                Text(
+                  '₹${order.total.toInt()}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.primaryRed),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
+            Text(
+              order.items.map((i) => i.name).join(', '),
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 if (order.status == AppOrderStatus.placed) ...[
-                  OutlinedButton(onPressed: () {}, child: const Text('Reject')),
-                  const SizedBox(width: 8),
-                  ElevatedButton(onPressed: () {}, child: const Text('Accept')),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE23744)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Reject', style: TextStyle(color: Color(0xFFE23744), fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton(
+                      text: 'Accept',
+                      onPressed: () {},
+                    ),
+                  ),
                 ] else if (order.status == AppOrderStatus.preparing) ...[
-                  ElevatedButton(onPressed: () {}, child: const Text('Mark Ready')),
+                  Expanded(
+                    child: PrimaryButton(
+                      text: 'Mark Ready',
+                      onPressed: () {},
+                    ),
+                  ),
                 ] else if (order.status == AppOrderStatus.ready) ...[
-                  ElevatedButton(onPressed: () {}, child: const Text('Hand to Rider')),
-                ]
+                  Expanded(
+                    child: PrimaryButton(
+                      text: 'Hand to Rider',
+                      onPressed: () {},
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -109,26 +255,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Drawer _drawer(BuildContext context) {
     return Drawer(
       child: ListView(
+        padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: AppTheme.primaryRed),
+          DrawerHeader(
+            decoration: const BoxDecoration(color: AppTheme.primaryRed),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('Meghana Foods', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                Text('Partner Dashboard', style: TextStyle(color: Colors.white70)),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.store_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(height: 12),
+                const Text('Meghana Foods', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('Partner Dashboard', style: TextStyle(color: Colors.white70, fontSize: 14)),
               ],
             ),
           ),
-          ListTile(leading: const Icon(Icons.dashboard), title: const Text('Dashboard'), onTap: () => Navigator.pop(context)),
-          ListTile(leading: const Icon(Icons.receipt_long), title: const Text('Orders'), onTap: () { Navigator.pop(context); context.go('/orders'); }),
-          ListTile(leading: const Icon(Icons.restaurant_menu), title: const Text('Menu'), onTap: () { Navigator.pop(context); context.go('/menu'); }),
-          ListTile(leading: const Icon(Icons.analytics), title: const Text('Analytics'), onTap: () { Navigator.pop(context); context.go('/analytics'); }),
-          ListTile(leading: const Icon(Icons.star), title: const Text('Reviews'), onTap: () { Navigator.pop(context); context.go('/reviews'); }),
-          ListTile(leading: const Icon(Icons.local_offer), title: const Text('Promotions'), onTap: () { Navigator.pop(context); context.go('/promotions'); }),
-          ListTile(leading: const Icon(Icons.settings), title: const Text('Settings'), onTap: () { Navigator.pop(context); context.go('/settings'); }),
-          ListTile(leading: const Icon(Icons.logout), title: const Text('Logout'), onTap: () => context.go('/login')),
+          _drawerItem(Icons.dashboard_rounded, 'Dashboard', () => Navigator.pop(context)),
+          _drawerItem(Icons.receipt_long_rounded, 'Orders', () { Navigator.pop(context); context.push('/orders'); }),
+          _drawerItem(Icons.restaurant_menu_rounded, 'Menu', () { Navigator.pop(context); context.push('/menu'); }),
+          _drawerItem(Icons.analytics_rounded, 'Analytics', () { Navigator.pop(context); context.push('/analytics'); }),
+          _drawerItem(Icons.star_rounded, 'Reviews', () { Navigator.pop(context); context.push('/reviews'); }),
+          _drawerItem(Icons.local_offer_rounded, 'Promotions', () { Navigator.pop(context); context.push('/promotions'); }),
+          _drawerItem(Icons.settings_rounded, 'Settings', () { Navigator.pop(context); context.push('/settings'); }),
+          const Divider(height: 1),
+          _drawerItem(Icons.logout_rounded, 'Logout', () => context.push('/login'), isDestructive: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
+    return ListTile(
+      leading: Icon(icon, color: isDestructive ? const Color(0xFFE23744) : const Color(0xFF1C1C1C)),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w500, color: isDestructive ? const Color(0xFFE23744) : const Color(0xFF1C1C1C))),
+      onTap: onTap,
+    );
+  }
+}
+
+class StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const StatCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    this.color = const Color(0xFFE23744),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1C1C1C)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+          ),
         ],
       ),
     );

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 // Store phone number for OTP screen to access
-final _phoneProvider = StateProvider<String>((ref) => '');
+final phoneProvider = StateProvider<String>((ref) => '');
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -46,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
     setState(() => _isLoading = true);
     
-    await ref.read(authProvider.notifier).sendOtp(phone, AppConstants.userTypeCustomer);
+    await ref.read(authProvider.notifier).sendOtp(phone, userType: AppConstants.userTypeCustomer);
     
     setState(() => _isLoading = false);
     
@@ -54,7 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (authState.error != null) {
       _showError(authState.error!);
     } else if (mounted) {
-      ref.read(_phoneProvider.notifier).state = phone;
+      ref.read(phoneProvider.notifier).state = phone;
       context.go('/otp');
     }
   }
@@ -310,4 +310,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 }
 
 // Make phone provider accessible to otp_screen
-final phoneNumberProvider = _phoneProvider;
+final phoneNumberProvider = phoneProvider;

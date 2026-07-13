@@ -15,6 +15,17 @@ class MenuCategory extends Equatable {
   List<Object?> get props => [id, name];
 }
 
+class AddOn extends Equatable {
+  final String id;
+  final String name;
+  final double price;
+
+  const AddOn({required this.id, required this.name, required this.price});
+
+  @override
+  List<Object?> get props => [id, name, price];
+}
+
 class MenuItem extends Equatable {
   final String id;
   final String categoryId;
@@ -25,6 +36,7 @@ class MenuItem extends Equatable {
   final bool isVeg;
   final bool isAvailable;
   final List<String> addOns;
+  final List<AddOn> addOnObjects;
   final List<MenuVariant> variants;
   final bool isRecommended;
   final int spiceLevel;
@@ -39,6 +51,7 @@ class MenuItem extends Equatable {
     required this.isVeg,
     this.isAvailable = true,
     this.addOns = const [],
+    this.addOnObjects = const [],
     this.variants = const [],
     this.isRecommended = false,
     this.spiceLevel = 0,

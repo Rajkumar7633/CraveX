@@ -75,6 +75,7 @@ class AppConstants {
   static const double defaultDeliveryFee = 40.0;
   static const double platformFee = 5.0;
   static const double packagingCharge = 10.0;
+  static const double taxRate = 0.18; // 18% GST
   
   // Cache durations (in seconds)
   static const int restaurantListCacheDuration = 120; // 2 minutes

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
-import 'login_screen.dart';
+import 'login_screen.dart' show phoneProvider;
 
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
@@ -19,10 +19,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   bool _isLoading = false;
   int _resendCountdown = 30;
   Timer? _timer;
+  String _phone = '';
 
   @override
   void initState() {
     super.initState();
+    _phone = ref.read(phoneProvider);
     _startCountdown();
     // Auto-focus first box
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,12 +63,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    final phone = ref.read(_phoneProvider);
     
     await ref.read(authProvider.notifier).verifyOtp(
-      phone,
+      _phone,
       _otp,
-      AppConstants.userTypeCustomer,
+      userType: AppConstants.userTypeCustomer,
     );
     
     setState(() => _isLoading = false);
@@ -86,9 +87,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resendOtp() async {
     if (_resendCountdown > 0) return;
-    final phone = ref.read(_phoneProvider);
     
-    await ref.read(authProvider.notifier).sendOtp(phone, AppConstants.userTypeCustomer);
+    await ref.read(authProvider.notifier).sendOtp(_phone, userType: AppConstants.userTypeCustomer);
     
     final authState = ref.read(authProvider);
     if (authState.error != null) {
@@ -135,7 +135,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phone = ref.watch(_phoneProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -172,7 +171,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'We sent a 6-digit OTP to +91 $phone',
+                'We sent a 6-digit OTP to +91 $_phone',
                 style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
               const SizedBox(height: 36),
