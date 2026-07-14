@@ -190,14 +190,25 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     {'title': 'CraveX Gold', 'subtitle': 'Extra 10% off everywhere', 'gradient': [0xFFB8860B, 0xFFD4A017]},
   ];
 
+  // Pre-computed gradient colors for better performance
+  static final _bannerGradients = _banners.map((b) {
+    final colors = (b['gradient'] as List).map((c) => Color(c as int)).toList();
+    return LinearGradient(colors: colors);
+  }).toList();
+
   @override
   void initState() {
     super.initState();
-    _requestLocationPermission();
+    // Request location permission after a delay to avoid blocking UI
+    Future.microtask(() => _requestLocationPermission());
   }
 
   Future<void> _requestLocationPermission() async {
-    await ref.read(locationProvider.notifier).requestLocationPermission();
+    try {
+      await ref.read(locationProvider.notifier).requestLocationPermission();
+    } catch (e) {
+      // Silently handle permission errors to avoid UI blocking
+    }
   }
 
   @override
@@ -344,12 +355,13 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               controller: PageController(viewportFraction: 0.9),
               itemBuilder: (_, i) {
                 final b = _banners[i];
+                final gradient = _bannerGradients[i];
                 final colors = (b['gradient'] as List).map((c) => Color(c as int)).toList();
                 return Container(
                   margin: const EdgeInsets.fromLTRB(8, 12, 8, 8),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: colors),
+                    gradient: gradient,
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -389,8 +401,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 final selected = i == _selectedCategory;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategory = i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                  child: Container(
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(

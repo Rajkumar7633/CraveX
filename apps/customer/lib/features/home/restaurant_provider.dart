@@ -89,7 +89,8 @@ class RestaurantNotifier extends StateNotifier<RestaurantState> {
   RestaurantNotifier(this.ref)
       : _apiClient = ApiClient(),
         super(const RestaurantState()) {
-    _loadRestaurants();
+    // Load restaurants after a microtask to avoid blocking UI initialization
+    Future.microtask(() => _loadRestaurants());
   }
 
   Future<void> _loadRestaurants({bool forceRefresh = false}) async {

@@ -8,13 +8,13 @@ class AuthService {
   final _dio = ApiClient().authDio;
 
   Future<void> sendOtp(String phone) async {
-    await _dio.post('/api/v1/auth/otp/send', data: {'phone': '+91$phone'});
+    await _dio.post('/api/v1/auth/send-otp', data: {'phone_number': '+91$phone'});
   }
 
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp, {String? referralCode}) async {
-    final resp = await _dio.post('/api/v1/auth/otp/verify', data: {
-      'phone': '+91$phone',
-      'otp': otp,
+    final resp = await _dio.post('/api/v1/auth/verify-otp', data: {
+      'phone_number': '+91$phone',
+      'code': otp,
       if (referralCode != null && referralCode.isNotEmpty) 'referralCode': referralCode,
     });
     final data = resp.data as Map<String, dynamic>;

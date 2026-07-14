@@ -146,72 +146,76 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEEEF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.sms_rounded, color: Color(0xFFE23744), size: 28),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Verify your number',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1C1C1C),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'We sent a 6-digit OTP to +91 $_phone',
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 36),
-              // OTP boxes
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (i) => _OtpBox(
-                  controller: _controllers[i],
-                  focusNode: _focusNodes[i],
-                  onChanged: (v) => _onDigitChanged(i, v),
-                )),
-              ),
-              const SizedBox(height: 20),
-              // Resend
-              Row(
-                children: [
-                  Text(
-                    'Didn\'t receive OTP? ',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 12, 28, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEEEF),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  GestureDetector(
-                    onTap: _resendOtp,
-                    child: Text(
-                      _resendCountdown > 0 ? 'Resend in ${_resendCountdown}s' : 'Resend OTP',
-                      style: TextStyle(
-                        color: _resendCountdown > 0 ? Colors.grey : const Color(0xFFE23744),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                  child: const Icon(Icons.sms_rounded, color: Color(0xFFE23744), size: 30),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Verify your number',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1C1C1C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'We sent a 6-digit OTP to +91 $_phone',
+                  style: const TextStyle(color: Colors.grey, fontSize: 15),
+                ),
+                const SizedBox(height: 40),
+                // OTP boxes
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(6, (i) => _OtpBox(
+                    controller: _controllers[i],
+                    focusNode: _focusNodes[i],
+                    onChanged: (v) => _onDigitChanged(i, v),
+                  )),
+                ),
+                const SizedBox(height: 24),
+                // Resend
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Didn\'t receive OTP? ',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
-                    ),
+                      GestureDetector(
+                        onTap: _resendOtp,
+                        child: Text(
+                          _resendCountdown > 0 ? 'Resend in ${_resendCountdown}s' : 'Resend OTP',
+                          style: TextStyle(
+                            color: _resendCountdown > 0 ? Colors.grey : const Color(0xFFE23744),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 28),
+                ),
+              const SizedBox(height: 32),
               // Referral code
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  color: const Color(0xFFF8F8F8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE8E8E8)),
                 ),
                 child: TextField(
                   controller: _referralCtrl,
@@ -221,27 +225,28 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     hintStyle: TextStyle(color: Colors.grey),
                     prefixIcon: Icon(Icons.card_giftcard_rounded, color: Color(0xFFE23744)),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 16),
+                    contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                   ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
               // Verify button
               SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE23744),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFFE23744).withOpacity(0.6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
+                    shadowColor: Colors.transparent,
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 22, height: 22,
+                          width: 24, height: 24,
                           child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                         )
                       : const Text(
@@ -272,8 +277,8 @@ class _OtpBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 46,
-      height: 54,
+      width: 48,
+      height: 56,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -281,19 +286,20 @@ class _OtpBox extends StatelessWidget {
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Color(0xFF1C1C1C)),
         decoration: InputDecoration(
           counterText: '',
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 1.5),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: Color(0xFFE23744), width: 2),
           ),
-          fillColor: focusNode.hasFocus ? const Color(0xFFFFEEEF) : const Color(0xFFF7F7F7),
+          fillColor: focusNode.hasFocus ? const Color(0xFFFFEEEF) : const Color(0xFFF8F8F8),
           filled: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
         onChanged: onChanged,
       ),

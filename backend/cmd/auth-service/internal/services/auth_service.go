@@ -26,16 +26,16 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo       repository.UserRepository
+	userRepo         repository.UserRepository
 	refreshTokenRepo repository.RefreshTokenRepository
-	jwtSecret      string
+	jwtSecret        string
 }
 
 func NewAuthService(userRepo repository.UserRepository, refreshTokenRepo repository.RefreshTokenRepository, jwtSecret string) AuthService {
 	return &authService{
-		userRepo:       userRepo,
+		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
-		jwtSecret:      jwtSecret,
+		jwtSecret:        jwtSecret,
 	}
 }
 
@@ -214,11 +214,11 @@ func (s *authService) DeleteAccount(userID uuid.UUID) error {
 
 func (s *authService) GenerateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id":  user.ID.String(),
-		"phone":   user.PhoneNumber,
+		"user_id":   user.ID.String(),
+		"phone":     user.PhoneNumber,
 		"user_type": user.UserType,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-		"iat":     time.Now().Unix(),
+		"exp":       time.Now().Add(time.Hour * 24).Unix(),
+		"iat":       time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -227,7 +227,7 @@ func (s *authService) GenerateToken(user *models.User) (string, error) {
 
 func (s *authService) GenerateRefreshToken(user *models.User) (string, error) {
 	refreshToken := uuid.New().String()
-	
+
 	token := &models.RefreshToken{
 		UserID:    user.ID,
 		Token:     refreshToken,
@@ -293,12 +293,31 @@ func NewOTPService(secret string) OTPService {
 }
 
 func (s *otpService) SendOTP(phoneNumber string) error {
+	// Generate a 6-digit OTP
+	otp := generateOTP()
+
 	// In a real implementation, this would send an SMS via MSG91 or Twilio
-	// For now, we'll just generate and store the OTP
+	// For development, we'll log the OTP to console
+	println("===========================================")
+	println("OTP FOR PHONE NUMBER:", phoneNumber)
+	println("OTP CODE:", otp)
+	println("===========================================")
+
+	// Store OTP in repository for verification (if repository is available)
+	// For now, we'll just return success
 	return nil
 }
 
 func (s *otpService) VerifyOTP(phoneNumber, code string) (bool, error) {
-	// In a real implementation, this would verify the OTP
-	return true, nil
+	// For development, accept any 6-digit code
+	if len(code) == 6 {
+		return true, nil
+	}
+	return false, errors.New("invalid OTP")
+}
+
+func generateOTP() string {
+	// Generate a simple 6-digit OTP
+	// In production, use a proper random number generator
+	return "123456" // Fixed OTP for development
 }

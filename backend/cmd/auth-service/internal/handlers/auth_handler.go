@@ -102,7 +102,33 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "OTP verified successfully"})
+	// After OTP verification, create or get the user and generate tokens
+	// For now, we'll create a simple user response
+	user := &models.User{
+		ID:          uuid.New(),
+		PhoneNumber: req.PhoneNumber,
+		UserType:    "customer",
+		FirstName:   "User",
+		LastName:    "",
+		IsActive:    true,
+	}
+
+	// Generate access token
+	token, err := h.authService.GenerateToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
+	// Generate a simple refresh token (bypassing database for now)
+	refreshToken := uuid.New().String()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "OTP verified successfully",
+		"accessToken":  token,
+		"refreshToken": refreshToken,
+		"user":         user,
+	})
 }
 
 func (h *AuthHandler) SendOTP(c *gin.Context) {
